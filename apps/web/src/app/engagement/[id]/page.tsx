@@ -5,12 +5,24 @@ import { WorkflowStepper } from "@/components/layout/WorkflowStepper";
 import { ScopingPanel } from "@/components/engagement/ScopingPanel";
 import { SwotCanvas } from "@/components/frameworks/SwotCanvas";
 import { PestelCanvas } from "@/components/frameworks/PestelCanvas";
+import { Porter5Canvas } from "@/components/frameworks/Porter5Canvas";
+import { BcgCanvas } from "@/components/frameworks/BcgCanvas";
+import { AnsoffCanvas } from "@/components/frameworks/AnsoffCanvas";
+import { SipocCanvas } from "@/components/frameworks/SipocCanvas";
+import { ValueChainCanvas } from "@/components/frameworks/ValueChainCanvas";
+import { RootCauseCanvas } from "@/components/frameworks/RootCauseCanvas";
 import { HypothesisTreeView } from "@/components/engagement/HypothesisTreeView";
+import { AnalysisPanel } from "@/components/engagement/AnalysisPanel";
+import { SynthesisPanel } from "@/components/engagement/SynthesisPanel";
+import { CommunicationPanel } from "@/components/engagement/CommunicationPanel";
+import { CritiquePanel } from "@/components/engagement/CritiquePanel";
+import { ExportPanel } from "@/components/engagement/ExportPanel";
 
 /**
- * Engagement Detail Page — The main cockpit view.
+ * Engagement Detail Page — The main cockpit view (M1 complete).
  * FR-20: 3-panel layout pattern per framework module.
  * §5: McKinsey-mirrored state machine drives the workflow.
+ * All 10 frameworks + analysis, synthesis, communication, critique, export.
  */
 
 type Stage =
@@ -20,13 +32,38 @@ type Stage =
   | "analysis"
   | "synthesis"
   | "communication"
+  | "critique"
   | "export";
 
 type FrameworkTab = "swot" | "pestel" | "porter5" | "bcg" | "ansoff" | "sipoc" | "value_chain" | "root_cause";
 
+const FRAMEWORK_TABS: Array<{ id: FrameworkTab; label: string; icon: string }> = [
+  { id: "swot", label: "SWOT", icon: "🎯" },
+  { id: "pestel", label: "PESTEL", icon: "🌍" },
+  { id: "porter5", label: "Porter's 5", icon: "⚔️" },
+  { id: "bcg", label: "BCG Matrix", icon: "📊" },
+  { id: "ansoff", label: "Ansoff", icon: "📈" },
+  { id: "sipoc", label: "SIPOC", icon: "⚙️" },
+  { id: "value_chain", label: "Value Chain", icon: "🔗" },
+  { id: "root_cause", label: "Root Cause", icon: "🔍" },
+];
+
 export default function EngagementPage() {
   const [currentStage, setCurrentStage] = useState<Stage>("scoping");
   const [activeFramework, setActiveFramework] = useState<FrameworkTab>("swot");
+
+  const renderFramework = () => {
+    switch (activeFramework) {
+      case "swot": return <SwotCanvas />;
+      case "pestel": return <PestelCanvas />;
+      case "porter5": return <Porter5Canvas />;
+      case "bcg": return <BcgCanvas />;
+      case "ansoff": return <AnsoffCanvas />;
+      case "sipoc": return <SipocCanvas />;
+      case "value_chain": return <ValueChainCanvas />;
+      case "root_cause": return <RootCauseCanvas />;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -41,9 +78,18 @@ export default function EngagementPage() {
             <span className="text-sm">Strategy Engagement</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-navy-300">v0 · Last saved: just now</span>
-            <button className="btn-secondary text-xs !bg-navy-800 !text-white !border-navy-600">
+            <span className="text-xs text-navy-300">M1 · Last saved: just now</span>
+            <button
+              className="btn-secondary text-xs !bg-navy-800 !text-white !border-navy-600"
+              onClick={() => setCurrentStage("export")}
+            >
               ↗ Export
+            </button>
+            <button
+              className="text-xs px-3 py-1.5 rounded bg-red-600/20 text-red-300 hover:bg-red-600/30 border border-red-500/30"
+              onClick={() => setCurrentStage("critique")}
+            >
+              🔍 Critique
             </button>
           </div>
         </div>
@@ -76,18 +122,9 @@ export default function EngagementPage() {
               description="Run strategy frameworks to build a comprehensive picture of the external environment and internal capabilities."
             />
 
-            {/* Framework tabs */}
+            {/* Framework tabs — all 10 active in M1 */}
             <div className="flex gap-1 mb-6 overflow-x-auto pb-2">
-              {[
-                { id: "swot" as const, label: "SWOT", m0: true },
-                { id: "pestel" as const, label: "PESTEL", m0: true },
-                { id: "porter5" as const, label: "Porter's 5", m0: false },
-                { id: "bcg" as const, label: "BCG Matrix", m0: false },
-                { id: "ansoff" as const, label: "Ansoff", m0: false },
-                { id: "sipoc" as const, label: "SIPOC", m0: false },
-                { id: "value_chain" as const, label: "Value Chain", m0: false },
-                { id: "root_cause" as const, label: "Root Cause", m0: false },
-              ].map((fw) => (
+              {FRAMEWORK_TABS.map((fw) => (
                 <button
                   key={fw.id}
                   onClick={() => setActiveFramework(fw.id)}
@@ -95,31 +132,16 @@ export default function EngagementPage() {
                     ${
                       activeFramework === fw.id
                         ? "bg-accent-600 text-white"
-                        : fw.m0
-                        ? "bg-white text-navy-700 hover:bg-navy-50 border border-navy-200"
-                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : "bg-white text-navy-700 hover:bg-navy-50 border border-navy-200"
                     }`}
-                  disabled={!fw.m0}
                 >
-                  {fw.label}
-                  {!fw.m0 && (
-                    <span className="text-xs ml-1 opacity-50">(M1)</span>
-                  )}
+                  {fw.icon} {fw.label}
                 </button>
               ))}
             </div>
 
             {/* Active framework canvas */}
-            {activeFramework === "swot" && <SwotCanvas />}
-            {activeFramework === "pestel" && <PestelCanvas />}
-            {!["swot", "pestel"].includes(activeFramework) && (
-              <div className="card text-center py-16 text-navy-300">
-                <p className="text-xl mb-2">Coming in M1</p>
-                <p className="text-sm">
-                  This framework will be available in the next milestone.
-                </p>
-              </div>
-            )}
+            {renderFramework()}
           </div>
         )}
 
@@ -139,13 +161,7 @@ export default function EngagementPage() {
               title="4. Analyze"
               description="Test each leaf hypothesis with the right method: descriptive, comparative, causal, forecasting, or qualitative."
             />
-            <div className="card text-center py-16 text-navy-300">
-              <p className="text-xl mb-2">🔬 Analysis Engine</p>
-              <p className="text-sm">
-                Full analysis agent coming in M1. For M0, test hypotheses
-                manually and record results.
-              </p>
-            </div>
+            <AnalysisPanel />
           </div>
         )}
 
@@ -153,15 +169,9 @@ export default function EngagementPage() {
           <div>
             <StageHeader
               title="5. Synthesize"
-              description="Roll findings into a Pyramid Principle narrative: one governing thought, 3-5 MECE key lines."
+              description="Roll findings into a Pyramid Principle narrative: one governing thought, 3-5 MECE key lines, each backed by analyses."
             />
-            <div className="card text-center py-16 text-navy-300">
-              <p className="text-xl mb-2">🧩 Pyramid Builder</p>
-              <p className="text-sm">
-                Structure your findings top-down (answer first) following the
-                Minto Pyramid Principle.
-              </p>
-            </div>
+            <SynthesisPanel />
           </div>
         )}
 
@@ -171,12 +181,17 @@ export default function EngagementPage() {
               title="6. Communicate"
               description="Build the slide deck. Every slide: action title (≤14 words), one message, footer sources."
             />
-            <div className="card text-center py-16 text-navy-300">
-              <p className="text-xl mb-2">📋 Slide Builder</p>
-              <p className="text-sm">
-                HTML slide deck generator with consulting-style formatting.
-              </p>
-            </div>
+            <CommunicationPanel />
+          </div>
+        )}
+
+        {currentStage === "critique" && (
+          <div>
+            <StageHeader
+              title="Quality — CritiqueAgent"
+              description="Mandatory quality linter. Checks MECE, sourcing, so-what, bias, consistency, completeness, and actionability."
+            />
+            <CritiquePanel />
           </div>
         )}
 
@@ -186,18 +201,7 @@ export default function EngagementPage() {
               title="7. Export"
               description="Export your strategy deck as HTML, PPTX, or PDF. Share with stakeholders."
             />
-            <div className="card text-center py-16 text-navy-300">
-              <p className="text-xl mb-2">📤 Export Center</p>
-              <div className="flex justify-center gap-4 mt-4">
-                <button className="btn-primary">Download HTML</button>
-                <button className="btn-secondary" disabled>
-                  PPTX (M1)
-                </button>
-                <button className="btn-secondary" disabled>
-                  PDF (M1)
-                </button>
-              </div>
-            </div>
+            <ExportPanel />
           </div>
         )}
       </main>

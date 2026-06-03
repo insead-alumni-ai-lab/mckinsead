@@ -1,5 +1,5 @@
-// Prisma schema for mckinsead M0
-// Single-tenant, no auth — per M0 scope
+// Prisma schema for mckinsead M1
+// Multi-tenant + SSO per M1 scope (§15)
 
 generator client {
   provider = "prisma-client-js"
@@ -10,18 +10,79 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Multi-tenant ──────────────────────────────────────────────────────
+
+model Tenant {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  ssoProvider String   @default("none") @map("sso_provider") // google | azure_ad | okta | none
+  ssoConfig   Json?    @map("sso_config")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users       User[]
+  engagements Engagement[]
+  sessions    Session[]
+
+  @@map("tenants")
+}
+
+model User {
+  id         String    @id @default(uuid())
+  tenantId   String    @map("tenant_id")
+  email      String
+  name       String
+  role       String    @default("analyst") // owner | admin | analyst | viewer
+  avatarUrl  String?   @map("avatar_url")
+  ssoSubject String?   @map("sso_subject")
+  lastLogin  DateTime? @map("last_login")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sessions Session[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  tenantId  String   @map("tenant_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("sessions")
+}
+
+// ─── Strategy Engagements ──────────────────────────────────────────────
+
 model Engagement {
   id        String   @id @default(uuid())
-  tenantId  String   @default("default") @map("tenant_id")
+  tenantId  String   @map("tenant_id")
   version   Int      @default(0)
   stage     String   @default("scoping") // EngagementStage enum
+  title     String   @default("Untitled Engagement")
   data      Json     // The full Engagement Object (JSON)
+  createdBy String?  @map("created_by") // User ID
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   auditEntries AuditEntry[]
   gates        Gate[]
+  critiques    Critique[]
 
+  @@index([tenantId])
   @@map("engagements")
 }
 
@@ -45,6 +106,7 @@ model Gate {
   gateId       String    @map("gate_id") // G1-G5
   name         String
   approved     Boolean   @default(false)
+  approvedBy   String?   @map("approved_by") // User ID
   approvedAt   DateTime? @map("approved_at")
   createdAt    DateTime  @default(now()) @map("created_at")
 
@@ -52,4 +114,21 @@ model Gate {
 
   @@unique([engagementId, gateId])
   @@map("gates")
+}
+
+model Critique {
+  id             String   @id @default(uuid())
+  engagementId   String   @map("engagement_id")
+  targetAgent    String   @map("target_agent")
+  targetArtifact String   @map("target_artifact")
+  result         Json     // CritiqueResult object
+  pass           Boolean
+  blockingCount  Int      @default(0) @map("blocking_count")
+  warningCount   Int      @default(0) @map("warning_count")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+
+  @@index([engagementId])
+  @@map("critiques")
 }
