@@ -1,173 +1,150 @@
-# 🧭 McKinsead — Agentic Strategy Cockpit
+# mckinsead — Agentic Strategy Cockpit
 
-> A fleet of specialised LLM agents, coordinated by an Engagement Orchestrator, walking users through McKinsey-style strategy consulting methodology.
+> McKinsey-grade strategy analysis powered by a fleet of specialized AI agents.
 
-## Vision
-
-McKinsead mirrors the full McKinsey consulting process as an AI-native SaaS product. From problem framing through hypothesis-driven analysis to slide-ready deliverables — with human-in-the-loop quality gates at every critical juncture.
+**mckinsead** is a multi-agent SaaS that walks users through a full strategy engagement — from problem scoping to slide deck export — using the same frameworks and disciplines taught at top consulting firms.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  apps/web  (Next.js 14 · Tailwind · tRPC client)           │
-│  ┌─────────┐ ┌───────────┐ ┌──────────┐ ┌──────────────┐   │
-│  │Dashboard│ │SWOT Canvas│ │  PESTEL  │ │Hypothesis    │   │
-│  │         │ │  + TOWS   │ │  Canvas  │ │Tree Editor   │   │
-│  └─────────┘ └───────────┘ └──────────┘ └──────────────┘   │
-├─────────────────────────────────────────────────────────────┤
-│  apps/api  (tRPC · Prisma · Express)                        │
-│  ┌──────────┐ ┌──────────────┐ ┌──────────┐ ┌───────────┐  │
-│  │Engagement│ │State Machine │ │Framework │ │Slide/Deck  │  │
-│  │  Router  │ │  (7 stages)  │ │ Routers  │ │ Export     │  │
-│  └──────────┘ └──────────────┘ └──────────┘ └───────────┘  │
-├─────────────────────────────────────────────────────────────┤
-│  packages/                                                   │
-│  ┌────────┐ ┌────────────────┐ ┌─────────┐ ┌───────────┐   │
-│  │schemas │ │pyramid-engine  │ │mece-    │ │slide-     │   │
-│  │(Zod)   │ │(Minto logic)   │ │linter   │ │components │   │
-│  └────────┘ └────────────────┘ └─────────┘ └───────────┘   │
-├─────────────────────────────────────────────────────────────┤
-│  mcp-servers/ (Model Context Protocol)                       │
-│  ┌──────────┐ ┌───────────────┐ ┌──────────────────┐       │
-│  │csv-upload│ │macro (WB/IMF) │ │news (sentiment)  │       │
-│  └──────────┘ └───────────────┘ └──────────────────┘       │
-├─────────────────────────────────────────────────────────────┤
-│  prompts/ (Versioned agent system prompts)                   │
-│  orchestrator · scoping · swot · pestel · hypothesis ·      │
-│  communication · critique                                    │
-├─────────────────────────────────────────────────────────────┤
-│  skills/ (Consulting methodology knowledge base)             │
-│  mece-check · pyramid-principle · scqa-framing ·            │
-│  so-what-writer · slide-grammar · exec-summary · chart-choice│
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│                  Next.js Frontend                     │
+│  Dashboard · SCQA Scoping · 8 Framework Canvases      │
+│  Hypothesis Tree · Analysis · Pyramid · Slide Builder │
+└──────────────────────┬──────────────────────────────┘
+                       │ tRPC
+┌──────────────────────┴──────────────────────────────┐
+│                   API Server                          │
+│  Prisma/Postgres · State Machine · Audit Trail        │
+│  Auth (Multi-tenant + SSO) · Critique Engine          │
+└──────────────────────┬──────────────────────────────┘
+                       │ MCP
+┌──────────────────────┴──────────────────────────────┐
+│                  MCP Servers                          │
+│  csv-upload · macro · news · python · sql · slides    │
+└─────────────────────────────────────────────────────┘
 ```
 
-## The 7-Stage Workflow
+## Milestone Status
 
-```
-🎯 SCOPE → 🔍 DIAGNOSE → 💡 HYPOTHESIZE → 📊 ANALYZE → 🧩 SYNTHESIZE → 📋 COMMUNICATE → 📤 EXPORT
-    G1          G2              G3                            G4               G5
-```
+| Milestone | Status | Scope |
+|-----------|--------|-------|
+| **M0** — Walking Skeleton | ✅ Merged | Monorepo, SWOT/PESTEL/Hypothesis, HTML export |
+| **M1** — Pilot Ready | 🚧 PR Open | All 10 frameworks, Analysis, Critique, PPTX, Auth |
+| **M2** — Production | 🔮 Planned | LLM integration, live agent orchestration |
 
-| Stage | What Happens | Gate |
-|-------|-------------|------|
-| **1. Scope** | Frame the problem using SCQA | G1: Problem Statement Lock |
-| **2. Diagnose** | Run SWOT, PESTEL, Porter's 5, etc. | G2: Framework Selection Lock |
-| **3. Hypothesize** | Build MECE hypothesis tree | G3: Hypothesis Tree Approval ⭐ |
-| **4. Analyze** | Test each leaf hypothesis | — |
-| **5. Synthesize** | Roll into Pyramid Principle narrative | G4: Pyramid Structure Lock |
-| **6. Communicate** | Build slide deck | G5: Final Deck Approval |
-| **7. Export** | HTML / PPTX / PDF | — |
+## What's in M1
 
-## Non-Negotiable Principles
+### Frameworks (all 10)
+| Framework | Canvas | Agent Prompt |
+|-----------|--------|--------------|
+| SWOT + TOWS | ✅ Interactive 4-quadrant editor | ✅ v1 |
+| PESTEL | ✅ 6-category signal editor | ✅ v1 |
+| Porter's Five Forces | ✅ Radar + detail cards | ✅ v1 |
+| BCG Growth-Share Matrix | ✅ Bubble plot + quadrant classification | ✅ v1 |
+| Ansoff Growth Matrix | ✅ 2×2 with feasibility/attractiveness scoring | ✅ v1 |
+| SIPOC | ✅ Multi-row process mapping table | ✅ v1 |
+| Porter Value Chain | ✅ Arrow visualization + cost/differentiation | ✅ v1 |
+| Root Cause (5 Whys + Ishikawa) | ✅ Dual-mode analysis canvas | ✅ v1 |
 
-1. 🔲 **MECE everywhere** — every breakdown, every level
-2. 💡 **Hypothesis before analysis** — never analyze without a hypothesis
-3. 💬 **So-what discipline** — every chart, table, and slide carries a so-what
-4. 📎 **Grounded claims** — every claim has a citation or evidence link
-5. 🔺 **Pyramid before slides** — structure the narrative before rendering
-6. 🔁 **Reversible state** — every mutation logged, pivots always possible
+### Analysis & Synthesis
+- **AnalysisPanel**: Test hypotheses with 5 methods (descriptive, comparative, causal, forecasting, qualitative)
+- **SynthesisPanel**: Minto Pyramid builder (governing thought + MECE key lines)
+- **CommunicationPanel**: Slide builder with consulting slide grammar
+- **CritiquePanel**: 7-check quality linter (MECE, sourcing, so-what, bias, consistency, completeness, actionability)
+- **ExportPanel**: HTML / PPTX / PDF export with theme options
 
-## Quick Start
+### Multi-tenant + SSO
+- Tenant, User, Session models in Prisma
+- Email login (dev) + Google/Azure AD/Okta SSO callbacks
+- Role-based access: owner, admin, analyst, viewer
 
-```bash
-# Prerequisites: Node.js 20+, pnpm 9+, PostgreSQL
+### MCP Servers (6)
+| Server | Purpose | Status |
+|--------|---------|--------|
+| `csv-upload` | Internal data ingestion | ✅ Working (in-memory) |
+| `macro` | World Bank / IMF indicators | ✅ Working (live API) |
+| `news` | News sentiment | 🔌 Stub |
+| `python` | Pandas/numpy/statsmodels analytics | 🔌 Stub |
+| `sql` | Snowflake/Postgres query runner (read-only) | 🔌 Stub |
+| `slides` | PPTX export via pptxgenjs | ✅ Working |
 
-# 1. Clone and install
-git clone https://github.com/insead-alumni-ai-lab/mckinsead.git
-cd mckinsead
-pnpm install
+### Agent System (16 agents)
+Scoping, SWOT, PESTEL, Porter 5, BCG, Ansoff, SIPOC, Value Chain, Root Cause, Hypothesis, Analysis, Synthesis, Communication, Critique, Enrichment, Orchestrator
 
-# 2. Set up environment
-cp .env.example .env
-# Edit .env with your DATABASE_URL and API keys
+### Consulting Skills Knowledge Base (9 skills)
+`mece-check`, `pyramid-principle`, `scqa-framing`, `so-what-writer`, `slide-grammar`, `exec-summary`, `chart-choice`, `financial-modeling`, `quick-math`
 
-# 3. Initialize database
-cd apps/api && npx prisma db push && cd ../..
+### Gates (Human-in-the-Loop)
+| Gate | Stage | Purpose |
+|------|-------|---------|
+| G1 | Scoping | Approve SCQA framing |
+| G2 | Frameworks | Approve framework selection |
+| G3 | Hypothesis | Approve hypothesis tree |
+| G4 | Synthesis | Approve pyramid storyline |
+| G5 | Communication | Approve final deck |
 
-# 4. Start development
-pnpm dev
-```
-
-- **Web UI**: http://localhost:3000
-- **API**: http://localhost:3001
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js 14, React 18, Tailwind CSS |
-| API | tRPC, Express |
-| Database | PostgreSQL + Prisma ORM |
-| Schemas | Zod (shared client/server) |
-| Monorepo | Turborepo + pnpm workspaces |
-| Data Layer | MCP (Model Context Protocol) servers |
-| Agent Prompts | Versioned Markdown (prompts/) |
-
-## Milestones
-
-### M0 — Walking Skeleton ✅ (Current)
-- [x] Monorepo structure + build pipeline
-- [x] Engagement Object schema (Zod)
-- [x] State machine (7 stages, 5 gates)
-- [x] tRPC API (engagements, frameworks, hypothesis, deck)
-- [x] SWOT canvas with TOWS cross-strategies
-- [x] PESTEL canvas with impact scoring
-- [x] Hypothesis tree editor (manual)
-- [x] HTML slide export
-- [x] MCP: CSV upload, Macro data (World Bank), News (stub)
-- [x] Agent system prompts (7 agents)
-- [x] Consulting skills knowledge base
-
-### M1 — Full Framework Suite (Next)
-- [ ] All 10 frameworks (Porter 5, BCG, Ansoff, SIPOC, Value Chain, Root Cause)
-- [ ] AnalysisAgent — automated hypothesis testing
-- [ ] Full Pyramid Engine with validation
-- [ ] CritiqueAgent — mandatory quality gates
-- [ ] PPTX export (via pptxgenjs)
-- [ ] Multi-tenant + SSO
-- [ ] Real-time news enrichment
-- [ ] Interactive charts (Chart.js / Recharts)
-
-## Project Structure
+## Monorepo Structure
 
 ```
 mckinsead/
 ├── apps/
-│   ├── api/              # tRPC API server
-│   │   ├── prisma/       # Database schema
-│   │   ├── src/
-│   │   │   ├── routers/  # tRPC route handlers
-│   │   │   ├── services/ # Business logic (state machine)
-│   │   │   └── lib/      # Shared utilities
-│   └── web/              # Next.js frontend
-│       └── src/
-│           ├── app/          # Pages (App Router)
-│           ├── components/   # React components
-│           │   ├── frameworks/   # SWOT, PESTEL canvases
-│           │   ├── engagement/   # Scoping, Hypothesis views
-│           │   └── layout/       # Stepper, navigation
-│           └── lib/          # tRPC client, utils
+│   ├── api/                  # tRPC API server + Prisma
+│   └── web/                  # Next.js 14 frontend
 ├── packages/
-│   ├── schemas/          # Shared Zod schemas
-│   ├── pyramid-engine/   # Pyramid Principle logic
-│   ├── mece-linter/      # MECE validation
-│   └── slide-components/ # HTML slide rendering
+│   ├── schemas/              # Shared Zod schemas
+│   ├── pyramid-engine/       # Pyramid validation + slide outlines
+│   ├── mece-linter/          # Heuristic MECE validation
+│   └── slide-components/     # HTML + PPTX slide renderers
 ├── mcp-servers/
-│   ├── csv-upload/       # Internal: CSV data ingestion
-│   ├── macro/            # External: World Bank / IMF
-│   └── news/             # External: News + sentiment
-├── prompts/              # Versioned agent system prompts
-├── skills/               # Consulting methodology knowledge
-├── evals/                # Golden test data
-└── ideation/             # Original design docs (AGENTS.md, etc.)
+│   ├── csv-upload/           # CSV ingestion
+│   ├── macro/                # World Bank / IMF data
+│   ├── news/                 # News sentiment
+│   ├── python/               # Python analytics sandbox
+│   ├── sql/                  # SQL query runner
+│   └── slides/               # PPTX generation
+├── prompts/                  # 16 versioned agent system prompts
+├── skills/                   # 9 consulting methodology skills
+└── evals/golden/             # Golden test cases
 ```
 
-## Contributing
+## Getting Started
 
-See `ideation/AGENTS.md` for the full specification and design rationale.
+```bash
+# Prerequisites: Node 20+, pnpm 9+, PostgreSQL
+git clone https://github.com/insead-alumni-ai-lab/mckinsead.git
+cd mckinsead
 
-## License
+# Install dependencies
+pnpm install
 
-Proprietary — INSEAD Alumni AI Lab
+# Set up environment
+cp .env.example .env
+# Edit .env with your DATABASE_URL
+
+# Initialize database
+cd apps/api && npx prisma migrate dev && cd ../..
+
+# Start development
+pnpm dev
+```
+
+## Tech Stack
+- **Frontend**: Next.js 14, React, Tailwind CSS
+- **API**: tRPC, Prisma, PostgreSQL
+- **Build**: Turborepo, pnpm workspaces
+- **Export**: pptxgenjs (PPTX), custom HTML renderer
+- **Schemas**: Zod (shared between frontend and API)
+
+## Non-Negotiables (from AGENTS.md §2)
+1. **MECE everywhere** — every breakdown must be mutually exclusive, collectively exhaustive
+2. **Hypothesis before analysis** — never gather data without a testable claim
+3. **So-what discipline** — every finding must answer "so what does this mean?"
+4. **Grounded claims** — every assertion needs a citation or evidence ID
+5. **Pyramid before slides** — always structure the narrative before building the deck
+6. **Reversible state** — any user can undo/redo; every action is audited
+7. **Human-in-the-loop** — 5 gates where the orchestrator must pause for approval
+
+---
+
+Built by the INSEAD Alumni AI Lab.
