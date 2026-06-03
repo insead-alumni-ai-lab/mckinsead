@@ -1,7 +1,7 @@
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useMutation, useQuery } from "convex/react";
-import { ChevronRight, Loader2, Moon, Palette, Sun, User } from "lucide-react";
-import { useState } from "react";
+import { useAction, useMutation, useQuery } from "convex/react";
+import { Bot, ChevronRight, Loader2, Moon, Palette, Sun, User } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -29,12 +29,20 @@ export function SettingsPage() {
 
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
+  const [aiProviders, setAiProviders] = useState<
+    Array<{ provider: string; configured: boolean; model: string; baseUrl: string }> | null
+  >(null);
+  const getProviders = useAction(api.ai.providers);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [passwordStep, setPasswordStep] = useState<"request" | "verify">(
     "request",
   );
+
+  useEffect(() => {
+    getProviders({}).then(setAiProviders).catch(() => setAiProviders(null));
+  }, [getProviders]);
 
   const handleRequestPasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,6 +167,65 @@ export function SettingsPage() {
               Theme follows your system preference
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Bot className="size-4 text-muted-foreground" />
+            AI Providers
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          {aiProviders === null ? (
+            <div className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" />
+              Checking providers…
+            </div>
+          ) : (
+            aiProviders.map((p) => (
+              <div
+                key={p.provider}
+                className="flex items-center justify-between rounded-lg border p-4 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`size-10 rounded-full flex items-center justify-center text-xs font-bold uppercase ${
+                      p.configured
+                        ? "bg-green-500/15 text-green-600 dark:text-green-400"
+                        : "bg-secondary text-muted-foreground"
+                    }`}
+                  >
+                    {p.provider === "anthropic" ? "A" : "O"}
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm capitalize">
+                      {p.provider}
+                      <span
+                        className={`ml-2 text-xs px-1.5 py-0.5 rounded ${
+                          p.configured
+                            ? "bg-green-500/15 text-green-600 dark:text-green-400"
+                            : "bg-secondary text-muted-foreground"
+                        }`}
+                      >
+                        {p.configured ? "Connected" : "Not configured"}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Model: <code className="bg-secondary px-1 py-0.5 rounded">{p.model}</code>
+                      {" · "}
+                      {p.baseUrl}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+          <p className="text-xs text-muted-foreground px-4 pt-2">
+            Configure via environment variables: <code className="bg-secondary px-1 py-0.5 rounded">ANTHROPIC_API_KEY</code>,{" "}
+            <code className="bg-secondary px-1 py-0.5 rounded">OPENAI_API_KEY</code>, etc.
+          </p>
         </CardContent>
       </Card>
 
