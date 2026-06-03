@@ -4,6 +4,7 @@ import { LayoutDashboard, LogOut, Moon, Settings, Sun } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import { APP_NAME } from "@/lib/constants";
+import { ThemeToggle } from "./ThemeToggle";
 import { api } from "../../convex/_generated/api";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import {
@@ -163,11 +164,27 @@ function SidebarHeaderContent() {
   );
 }
 
+function SidebarThemeToggle() {
+  const { theme } = useTheme();
+
+  return (
+    <div className="px-3 py-2 border-t border-sidebar-border">
+      <div className="flex items-center justify-between px-2 py-1">
+        <span className="text-xs text-muted-foreground font-medium">
+          {theme === "light" ? "Light" : "Dark"} mode
+        </span>
+        <ThemeToggle variant="default" />
+      </div>
+    </div>
+  );
+}
+
 export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeaderContent />
       <SidebarNav />
+      <SidebarThemeToggle />
       <SidebarUserMenu />
     </Sidebar>
   );

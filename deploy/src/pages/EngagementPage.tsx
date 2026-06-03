@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FaIcon, FA } from "@/components/FaIcon";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -59,24 +60,24 @@ type FrameworkTab = "swot" | "pestel" | "porter5" | "bcg" | "ansoff" | "sipoc" |
 // ─── Stage config ─────────────────────────────────────────────────────────────
 
 const STAGES: Array<{ id: Stage; label: string; icon: string; gate?: string }> = [
-  { id: "scoping", label: "Scope", icon: "🎯", gate: "G1" },
-  { id: "frameworks", label: "Diagnose", icon: "🔍", gate: "G2" },
-  { id: "hypothesis", label: "Hypothesize", icon: "💡", gate: "G3" },
-  { id: "analysis", label: "Analyze", icon: "📊" },
-  { id: "synthesis", label: "Synthesize", icon: "🧩", gate: "G4" },
-  { id: "communication", label: "Communicate", icon: "📋", gate: "G5" },
-  { id: "export", label: "Export", icon: "📤" },
+  { id: "scoping", label: "Scope", icon: FA.scope, gate: "G1" },
+  { id: "frameworks", label: "Diagnose", icon: FA.diagnose, gate: "G2" },
+  { id: "hypothesis", label: "Hypothesize", icon: FA.hypothesize, gate: "G3" },
+  { id: "analysis", label: "Analyze", icon: FA.analyze },
+  { id: "synthesis", label: "Synthesize", icon: FA.synthesize, gate: "G4" },
+  { id: "communication", label: "Communicate", icon: FA.communicate, gate: "G5" },
+  { id: "export", label: "Export", icon: FA.export },
 ];
 
 const FRAMEWORK_TABS: Array<{ id: FrameworkTab; label: string; icon: string }> = [
-  { id: "swot", label: "SWOT", icon: "🎯" },
-  { id: "pestel", label: "PESTEL", icon: "🌍" },
-  { id: "porter5", label: "Porter's 5", icon: "⚔️" },
-  { id: "bcg", label: "BCG", icon: "📊" },
-  { id: "ansoff", label: "Ansoff", icon: "📈" },
-  { id: "sipoc", label: "SIPOC", icon: "⚙️" },
-  { id: "value_chain", label: "Value Chain", icon: "🔗" },
-  { id: "root_cause", label: "Root Cause", icon: "🔍" },
+  { id: "swot", label: "SWOT", icon: FA.swot },
+  { id: "pestel", label: "PESTEL", icon: FA.pestel },
+  { id: "porter5", label: "Porter's 5", icon: FA.porter5 },
+  { id: "bcg", label: "BCG", icon: FA.bcg },
+  { id: "ansoff", label: "Ansoff", icon: FA.ansoff },
+  { id: "sipoc", label: "SIPOC", icon: FA.sipoc },
+  { id: "value_chain", label: "Value Chain", icon: FA.valueChain },
+  { id: "root_cause", label: "Root Cause", icon: FA.rootCause },
 ];
 
 // ─── Main Engagement Page ─────────────────────────────────────────────────────
@@ -125,7 +126,7 @@ export function EngagementPage() {
                           : "bg-muted text-muted-foreground hover:bg-muted/80"
                     }`}
                   >
-                    <span>{stage.icon}</span>
+                    <FaIcon icon={stage.icon} className="text-xs" />
                     <span className="hidden sm:inline">{stage.label}</span>
                     {stage.gate && (
                       <span className={`text-[10px] ml-1 px-1 rounded ${isCurrent ? "bg-primary-foreground/20" : "bg-muted-foreground/10"}`}>
@@ -158,7 +159,7 @@ export function EngagementPage() {
                         : "bg-muted text-muted-foreground hover:bg-muted/80"
                     }`}
                   >
-                    {fw.icon} {fw.label}
+                    <FaIcon icon={fw.icon} className="text-xs mr-1" />{fw.label}
                   </button>
                 ))}
               </div>
@@ -246,7 +247,7 @@ function ScopingPanel() {
             onClick={() => setApproved(!approved)}
           >
             {approved ? <Check className="size-4" /> : <Shield className="size-4" />}
-            {approved ? "G1 Approved ✓" : "Approve G1"}
+            {approved ? "G1 Approved" : "Approve G1"}
           </Button>
         </div>
       </CardContent>
@@ -265,14 +266,21 @@ function SwotCanvas() {
   });
 
   const colors: Record<string, { bg: string; border: string; icon: string }> = {
-    strengths: { bg: "bg-green-50 dark:bg-green-950/30", border: "border-green-200 dark:border-green-800", icon: "💪" },
-    weaknesses: { bg: "bg-red-50 dark:bg-red-950/30", border: "border-red-200 dark:border-red-800", icon: "⚠️" },
-    opportunities: { bg: "bg-blue-50 dark:bg-blue-950/30", border: "border-blue-200 dark:border-blue-800", icon: "🌟" },
-    threats: { bg: "bg-orange-50 dark:bg-orange-950/30", border: "border-orange-200 dark:border-orange-800", icon: "🔥" },
+    strengths: { bg: "bg-green-50 dark:bg-green-950/30", border: "border-green-200 dark:border-green-800", icon: FA.strengths },
+    weaknesses: { bg: "bg-red-50 dark:bg-red-950/30", border: "border-red-200 dark:border-red-800", icon: FA.weaknesses },
+    opportunities: { bg: "bg-blue-50 dark:bg-blue-950/30", border: "border-blue-200 dark:border-blue-800", icon: FA.opportunities },
+    threats: { bg: "bg-orange-50 dark:bg-orange-950/30", border: "border-orange-200 dark:border-orange-800", icon: FA.threats },
   };
 
   const addItem = (quadrant: string) => {
     setItems((prev) => ({ ...prev, [quadrant]: [...prev[quadrant], ""] }));
+  };
+
+  const removeItem = (quadrant: string, index: number) => {
+    setItems((prev) => ({
+      ...prev,
+      [quadrant]: prev[quadrant].filter((_, i) => i !== index),
+    }));
   };
 
   return (
@@ -290,7 +298,7 @@ function SwotCanvas() {
             <div key={quadrant} className={`rounded-lg border p-4 ${colors[quadrant].bg} ${colors[quadrant].border}`}>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-sm capitalize flex items-center gap-2">
-                  {colors[quadrant].icon} {quadrant}
+                  <FaIcon icon={colors[quadrant].icon} className="text-xs" /> {quadrant}
                 </h3>
                 <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => addItem(quadrant)}>
                   <Plus className="size-3" />
@@ -298,7 +306,7 @@ function SwotCanvas() {
               </div>
               <div className="space-y-2">
                 {entries.map((item, i) => (
-                  <div key={i} className="flex items-start gap-2">
+                  <div key={i} className="flex items-start gap-2 group">
                     <span className="text-xs text-muted-foreground mt-2 w-4 shrink-0">{i + 1}.</span>
                     <Input
                       value={item}
@@ -311,6 +319,14 @@ function SwotCanvas() {
                       className="h-8 text-sm bg-background"
                       placeholder="Add item..."
                     />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                      onClick={() => removeItem(quadrant, i)}
+                    >
+                      <Trash2 className="size-3" />
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -326,12 +342,12 @@ function SwotCanvas() {
 
 function PestelCanvas() {
   const categories = [
-    { id: "political", label: "Political", icon: "🏛️", color: "bg-red-500/10 border-red-200 dark:border-red-800", items: ["Trade policy shifts post-2025", "Government subsidies for green tech"] },
-    { id: "economic", label: "Economic", icon: "💰", color: "bg-blue-500/10 border-blue-200 dark:border-blue-800", items: ["Interest rate environment", "FX volatility in emerging markets"] },
-    { id: "social", label: "Social", icon: "👥", color: "bg-green-500/10 border-green-200 dark:border-green-800", items: ["Remote work adoption", "Gen-Z buying preferences"] },
-    { id: "technological", label: "Technological", icon: "🔧", color: "bg-purple-500/10 border-purple-200 dark:border-purple-800", items: ["Generative AI disruption", "Edge computing adoption"] },
-    { id: "environmental", label: "Environmental", icon: "🌱", color: "bg-emerald-500/10 border-emerald-200 dark:border-emerald-800", items: ["Carbon reporting requirements", "Circular economy mandates"] },
-    { id: "legal", label: "Legal", icon: "⚖️", color: "bg-orange-500/10 border-orange-200 dark:border-orange-800", items: ["GDPR enforcement tightening", "AI regulation (EU AI Act)"] },
+    { id: "political", label: "Political", icon: FA.political, color: "bg-red-500/10 border-red-200 dark:border-red-800", items: ["Trade policy shifts post-2025", "Government subsidies for green tech"] },
+    { id: "economic", label: "Economic", icon: FA.economic, color: "bg-blue-500/10 border-blue-200 dark:border-blue-800", items: ["Interest rate environment", "FX volatility in emerging markets"] },
+    { id: "social", label: "Social", icon: FA.social, color: "bg-green-500/10 border-green-200 dark:border-green-800", items: ["Remote work adoption", "Gen-Z buying preferences"] },
+    { id: "technological", label: "Technological", icon: FA.technological, color: "bg-purple-500/10 border-purple-200 dark:border-purple-800", items: ["Generative AI disruption", "Edge computing adoption"] },
+    { id: "environmental", label: "Environmental", icon: FA.environmental, color: "bg-emerald-500/10 border-emerald-200 dark:border-emerald-800", items: ["Carbon reporting requirements", "Circular economy mandates"] },
+    { id: "legal", label: "Legal", icon: FA.legal, color: "bg-orange-500/10 border-orange-200 dark:border-orange-800", items: ["GDPR enforcement tightening", "AI regulation (EU AI Act)"] },
   ];
 
   const [data, setData] = useState(categories.map((c) => ({ ...c, items: [...c.items] })));
@@ -349,11 +365,11 @@ function PestelCanvas() {
           {data.map((cat, ci) => (
             <div key={cat.id} className={`rounded-lg border p-4 ${cat.color}`}>
               <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                {cat.icon} {cat.label}
+                <FaIcon icon={cat.icon} className="text-xs" /> {cat.label}
               </h3>
               <div className="space-y-2">
                 {cat.items.map((item, ii) => (
-                  <div key={ii} className="flex items-center gap-2">
+                  <div key={ii} className="flex items-center gap-2 group">
                     <span className="text-[10px] text-muted-foreground w-3">{ii + 1}</span>
                     <Input
                       value={item}
@@ -365,6 +381,18 @@ function PestelCanvas() {
                       }}
                       className="h-7 text-xs bg-background"
                     />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                      onClick={() => {
+                        const next = [...data];
+                        next[ci] = { ...next[ci], items: next[ci].items.filter((_, j) => j !== ii) };
+                        setData(next);
+                      }}
+                    >
+                      <Trash2 className="size-3" />
+                    </Button>
                   </div>
                 ))}
                 <Button
@@ -392,11 +420,11 @@ function PestelCanvas() {
 
 function Porter5Canvas() {
   const [forces, setForces] = useState([
-    { name: "Competitive Rivalry", intensity: 4, notes: "Fragmented market with 3 major players. Price competition increasing.", icon: "⚔️" },
-    { name: "Threat of New Entrants", intensity: 3, notes: "Moderate barriers (capital + regulations). AI lowering tech barriers.", icon: "🚪" },
-    { name: "Bargaining Power of Buyers", intensity: 3, notes: "Enterprise clients have leverage. SMB more fragmented.", icon: "🛒" },
-    { name: "Bargaining Power of Suppliers", intensity: 2, notes: "Cloud infra = AWS/GCP duopoly. LLM providers consolidating.", icon: "🏭" },
-    { name: "Threat of Substitutes", intensity: 3, notes: "DIY analytics, in-house teams, open-source tools.", icon: "🔄" },
+    { name: "Competitive Rivalry", intensity: 4, notes: "Fragmented market with 3 major players. Price competition increasing.", icon: FA.rivalry },
+    { name: "Threat of New Entrants", intensity: 3, notes: "Moderate barriers (capital + regulations). AI lowering tech barriers.", icon: FA.newEntrants },
+    { name: "Bargaining Power of Buyers", intensity: 3, notes: "Enterprise clients have leverage. SMB more fragmented.", icon: FA.buyers },
+    { name: "Bargaining Power of Suppliers", intensity: 2, notes: "Cloud infra = AWS/GCP duopoly. LLM providers consolidating.", icon: FA.suppliers },
+    { name: "Threat of Substitutes", intensity: 3, notes: "DIY analytics, in-house teams, open-source tools.", icon: FA.substitutes },
   ]);
 
   return (
@@ -412,7 +440,7 @@ function Porter5Canvas() {
         <div className="grid gap-3">
           {forces.map((force, i) => (
             <div key={force.name} className="rounded-lg border p-4 flex items-start gap-4">
-              <div className="text-2xl">{force.icon}</div>
+              <div className="text-xl"><FaIcon icon={force.icon} /></div>
               <div className="flex-1 space-y-2">
                 <div className="flex items-center justify-between">
                   <h4 className="font-semibold text-sm">{force.name}</h4>
@@ -474,10 +502,10 @@ function BcgCanvas() {
   ]);
 
   const quadrantStyles: Record<string, { bg: string; label: string; icon: string }> = {
-    "star": { bg: "bg-yellow-500/10 text-yellow-600", label: "⭐ Star", icon: "⭐" },
-    "cash-cow": { bg: "bg-green-500/10 text-green-600", label: "🐄 Cash Cow", icon: "🐄" },
-    "question-mark": { bg: "bg-blue-500/10 text-blue-600", label: "❓ Question Mark", icon: "❓" },
-    "dog": { bg: "bg-red-500/10 text-red-600", label: "🐕 Dog", icon: "🐕" },
+    "star": { bg: "bg-yellow-500/10 text-yellow-600", label: "Star", icon: FA.star },
+    "cash-cow": { bg: "bg-green-500/10 text-green-600", label: "Cash Cow", icon: FA.cashCow },
+    "question-mark": { bg: "bg-blue-500/10 text-blue-600", label: "Question Mark", icon: FA.questionMark },
+    "dog": { bg: "bg-red-500/10 text-red-600", label: "Dog", icon: FA.dog },
   };
 
   return (
@@ -492,25 +520,25 @@ function BcgCanvas() {
         {/* 2x2 Matrix Visual */}
         <div className="grid grid-cols-2 gap-2">
           <div className="border rounded-lg p-4 bg-blue-50/50 dark:bg-blue-950/20 min-h-[120px]">
-            <h4 className="text-xs font-semibold text-blue-600 mb-2">❓ Question Marks — High Growth / Low Share</h4>
+            <h4 className="text-xs font-semibold text-blue-600 mb-2"><i className="fa-solid fa-circle-question" /> Question Marks — High Growth / Low Share</h4>
             {products.filter((p) => p.quadrant === "question-mark").map((p) => (
               <Badge key={p.name} variant="secondary" className="mr-1 mb-1">{p.name}</Badge>
             ))}
           </div>
           <div className="border rounded-lg p-4 bg-yellow-50/50 dark:bg-yellow-950/20 min-h-[120px]">
-            <h4 className="text-xs font-semibold text-yellow-600 mb-2">⭐ Stars — High Growth / High Share</h4>
+            <h4 className="text-xs font-semibold text-yellow-600 mb-2"><i className="fa-solid fa-star" /> Stars — High Growth / High Share</h4>
             {products.filter((p) => p.quadrant === "star").map((p) => (
               <Badge key={p.name} variant="secondary" className="mr-1 mb-1">{p.name}</Badge>
             ))}
           </div>
           <div className="border rounded-lg p-4 bg-red-50/50 dark:bg-red-950/20 min-h-[120px]">
-            <h4 className="text-xs font-semibold text-red-600 mb-2">🐕 Dogs — Low Growth / Low Share</h4>
+            <h4 className="text-xs font-semibold text-red-600 mb-2"><i className="fa-solid fa-dog" /> Dogs — Low Growth / Low Share</h4>
             {products.filter((p) => p.quadrant === "dog").map((p) => (
               <Badge key={p.name} variant="secondary" className="mr-1 mb-1">{p.name}</Badge>
             ))}
           </div>
           <div className="border rounded-lg p-4 bg-green-50/50 dark:bg-green-950/20 min-h-[120px]">
-            <h4 className="text-xs font-semibold text-green-600 mb-2">🐄 Cash Cows — Low Growth / High Share</h4>
+            <h4 className="text-xs font-semibold text-green-600 mb-2"><i className="fa-solid fa-piggy-bank" /> Cash Cows — Low Growth / High Share</h4>
             {products.filter((p) => p.quadrant === "cash-cow").map((p) => (
               <Badge key={p.name} variant="secondary" className="mr-1 mb-1">{p.name}</Badge>
             ))}
@@ -538,7 +566,7 @@ function BcgCanvas() {
                   <td className="p-2 text-right">${p.revenue}M</td>
                   <td className="p-2 text-center">
                     <Badge variant="secondary" className={quadrantStyles[p.quadrant]?.bg}>
-                      {quadrantStyles[p.quadrant]?.icon}
+                      <FaIcon icon={quadrantStyles[p.quadrant]?.icon} className="text-xs" />
                     </Badge>
                   </td>
                 </tr>
@@ -769,7 +797,7 @@ function RootCauseCanvas() {
         {mode === "5whys" ? (
           <div className="space-y-2">
             {whys.map((why, i) => (
-              <div key={i} className="flex items-start gap-3">
+              <div key={i} className="flex items-start gap-3 group">
                 <div className="flex flex-col items-center">
                   <div className={`size-8 rounded-full flex items-center justify-center text-xs font-bold ${i === whys.length - 1 ? "bg-red-500 text-white" : "bg-primary/10 text-primary"}`}>
                     W{i + 1}
@@ -778,18 +806,38 @@ function RootCauseCanvas() {
                 </div>
                 <div className="flex-1 pt-1">
                   <Label className="text-[10px] text-muted-foreground">Why #{i + 1}{i === whys.length - 1 ? " — Root Cause" : ""}</Label>
-                  <Input
-                    value={why}
-                    onChange={(e) => {
-                      const next = [...whys];
-                      next[i] = e.target.value;
-                      setWhys(next);
-                    }}
-                    className={`mt-1 ${i === whys.length - 1 ? "border-red-300 dark:border-red-700" : ""}`}
-                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={why}
+                      onChange={(e) => {
+                        const next = [...whys];
+                        next[i] = e.target.value;
+                        setWhys(next);
+                      }}
+                      className={`mt-1 ${i === whys.length - 1 ? "border-red-300 dark:border-red-700" : ""}`}
+                    />
+                    {whys.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                        onClick={() => setWhys(whys.filter((_, j) => j !== i))}
+                      >
+                        <Trash2 className="size-3" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3 gap-2"
+              onClick={() => setWhys([...whys, ""])}
+            >
+              <Plus className="size-3" /> Add Why
+            </Button>
           </div>
         ) : (
           <div className="space-y-3">
@@ -885,11 +933,11 @@ function HypothesisPanel() {
 
 function AnalysisPanel() {
   const methods = [
-    { name: "Descriptive", desc: "Summarize what the data shows", icon: "📋" },
-    { name: "Comparative", desc: "Benchmark against peers/history", icon: "⚖️" },
-    { name: "Causal", desc: "Test cause-effect relationships", icon: "🔬" },
-    { name: "Forecasting", desc: "Project future outcomes", icon: "🔮" },
-    { name: "Qualitative", desc: "Expert interviews & surveys", icon: "💬" },
+    { name: "Descriptive", desc: "Summarize what the data shows", icon: FA.descriptive },
+    { name: "Comparative", desc: "Benchmark against peers/history", icon: FA.comparative },
+    { name: "Causal", desc: "Test cause-effect relationships", icon: FA.causal },
+    { name: "Forecasting", desc: "Project future outcomes", icon: "fa-solid fa-wand-magic-sparkles" },
+    { name: "Qualitative", desc: "Expert interviews & surveys", icon: "fa-solid fa-comments" },
   ];
 
   const analyses = [
@@ -911,7 +959,7 @@ function AnalysisPanel() {
         <div className="grid grid-cols-5 gap-2">
           {methods.map((m) => (
             <div key={m.name} className="text-center border rounded-lg p-3">
-              <div className="text-xl mb-1">{m.icon}</div>
+              <div className="text-xl mb-1"><FaIcon icon={m.icon} /></div>
               <div className="text-xs font-semibold">{m.name}</div>
               <div className="text-[10px] text-muted-foreground">{m.desc}</div>
             </div>
@@ -1038,7 +1086,7 @@ function CommunicationPanel() {
               </div>
               <p className="text-sm font-medium">{slide.title}</p>
               <p className="text-[10px] text-muted-foreground mt-1">
-                {slide.title.split(" ").length} words — {slide.title.split(" ").length <= 14 ? "✅ within limit" : "⚠️ over 14 words"}
+                {slide.title.split(" ").length} words — {slide.title.split(" ").length <= 14 ? <><i className="fa-solid fa-circle-check text-green-500" /> within limit</> : <><i className="fa-solid fa-triangle-exclamation text-amber-500" /> over 14 words</>}
               </p>
             </div>
             <Button variant="ghost" size="icon" className="size-7">
@@ -1072,16 +1120,16 @@ function ExportPanel() {
       <CardContent className="space-y-6">
         <div className="grid md:grid-cols-3 gap-4">
           {[
-            { id: "pptx", label: "PowerPoint", desc: "Consulting-style PPTX with themes", icon: "📊" },
-            { id: "pdf", label: "PDF Report", desc: "Print-ready strategy report", icon: "📄" },
-            { id: "html", label: "HTML Slides", desc: "Browser-based presentation", icon: "🌐" },
+            { id: "pptx", label: "PowerPoint", desc: "Consulting-style PPTX with themes", icon: "fa-solid fa-file-powerpoint" },
+            { id: "pdf", label: "PDF Report", desc: "Print-ready strategy report", icon: "fa-solid fa-file-pdf" },
+            { id: "html", label: "HTML Slides", desc: "Browser-based presentation", icon: "fa-solid fa-globe" },
           ].map((f) => (
             <button
               key={f.id}
               onClick={() => setFormat(f.id)}
               className={`border rounded-lg p-4 text-left transition-colors ${format === f.id ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}
             >
-              <div className="text-2xl mb-2">{f.icon}</div>
+              <div className="text-2xl mb-2"><FaIcon icon={f.icon} /></div>
               <h4 className="font-semibold text-sm">{f.label}</h4>
               <p className="text-xs text-muted-foreground">{f.desc}</p>
             </button>
