@@ -2,6 +2,7 @@ import { useConvexAuth } from "convex/react";
 import { ArrowRight } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { APP_NAME } from "@/lib/constants";
+import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "./ui/button";
 
 export function Header() {
@@ -28,6 +29,7 @@ export function Header() {
           </Link>
 
           <nav className="flex items-center gap-2">
+            <ThemeToggle variant="icon" />
             {isLoading ? null : isAuthenticated ? (
               <Button size="sm" asChild>
                 <Link to="/dashboard">

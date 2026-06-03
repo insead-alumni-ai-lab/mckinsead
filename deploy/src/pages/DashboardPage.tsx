@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FaIcon, FA } from "@/components/FaIcon";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -54,13 +55,13 @@ const TEMPLATES = [
 ];
 
 const WORKFLOW_STEPS = [
-  { icon: "🎯", stage: "Scope", desc: "Frame the problem" },
-  { icon: "🔍", stage: "Diagnose", desc: "Run frameworks" },
-  { icon: "💡", stage: "Hypothesize", desc: "Build tree" },
-  { icon: "📊", stage: "Analyze", desc: "Test hypotheses" },
-  { icon: "🧩", stage: "Synthesize", desc: "Pyramid principle" },
-  { icon: "📋", stage: "Communicate", desc: "Build deck" },
-  { icon: "📤", stage: "Export", desc: "PPTX / PDF" },
+  { icon: FA.scope, stage: "Scope", desc: "Frame the problem" },
+  { icon: FA.diagnose, stage: "Diagnose", desc: "Run frameworks" },
+  { icon: FA.hypothesize, stage: "Hypothesize", desc: "Build tree" },
+  { icon: FA.analyze, stage: "Analyze", desc: "Test hypotheses" },
+  { icon: FA.synthesize, stage: "Synthesize", desc: "Pyramid principle" },
+  { icon: FA.communicate, stage: "Communicate", desc: "Build deck" },
+  { icon: FA.export, stage: "Export", desc: "PPTX / PDF" },
 ];
 
 // Demo engagements for testing
@@ -195,7 +196,7 @@ export function DashboardPage() {
               <div key={s.stage} className="flex items-center">
                 {i > 0 && <span className="text-muted-foreground mx-1 text-xs">→</span>}
                 <div className="flex-shrink-0 bg-muted/60 rounded-lg px-3 py-2 text-center min-w-[90px]">
-                  <div className="text-xl mb-0.5">{s.icon}</div>
+                  <div className="text-xl mb-0.5"><FaIcon icon={s.icon} /></div>
                   <div className="text-xs font-semibold">{s.stage}</div>
                   <div className="text-[10px] text-muted-foreground">{s.desc}</div>
                 </div>
@@ -211,7 +212,7 @@ export function DashboardPage() {
         {engagements.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
-              <div className="text-5xl mb-4">🧭</div>
+              <div className="text-5xl mb-4"><FaIcon icon={FA.compass} /></div>
               <p className="text-lg mb-2 font-medium">No engagements yet</p>
               <p className="text-sm text-muted-foreground mb-6">
                 Create your first strategy engagement or use a quick-start template
