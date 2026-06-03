@@ -1,0 +1,55 @@
+// Prisma schema for mckinsead M0
+// Single-tenant, no auth — per M0 scope
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Engagement {
+  id        String   @id @default(uuid())
+  tenantId  String   @default("default") @map("tenant_id")
+  version   Int      @default(0)
+  stage     String   @default("scoping") // EngagementStage enum
+  data      Json     // The full Engagement Object (JSON)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  auditEntries AuditEntry[]
+  gates        Gate[]
+
+  @@map("engagements")
+}
+
+model AuditEntry {
+  id           String   @id @default(uuid())
+  engagementId String   @map("engagement_id")
+  agent        String
+  action       String
+  diff         String?  // JSON patch or description
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+
+  @@index([engagementId, createdAt])
+  @@map("audit_entries")
+}
+
+model Gate {
+  id           String    @id @default(uuid())
+  engagementId String    @map("engagement_id")
+  gateId       String    @map("gate_id") // G1-G5
+  name         String
+  approved     Boolean   @default(false)
+  approvedAt   DateTime? @map("approved_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+
+  @@unique([engagementId, gateId])
+  @@map("gates")
+}
