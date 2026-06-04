@@ -9,8 +9,10 @@ import {
   BarChart3,
   Building2,
   Globe,
+  Key,
   Loader2,
   Plus,
+  Settings,
   Trash2,
   Wrench,
   Zap,
@@ -76,9 +78,16 @@ export function DashboardPage() {
   // ─── Convex data ─────────────────────────────────────────
   const engagements = useQuery(api.engagements.list) ?? [];
   const subscription = useQuery(api.subscriptions.current);
+  const userAiConfigs = useQuery(api.userAiConfig.list) ?? [];
   const createEngagement = useMutation(api.engagements.create);
   const removeEngagement = useMutation(api.engagements.remove);
   const createCheckout = useAction(api.stripe.createCheckout);
+
+  // Free-tier (BYOK) users need at least one API key configured
+  const isFree = !subscription || subscription.plan === "free";
+  const isByok = !subscription || subscription.mode === "byok";
+  const hasKeys = userAiConfigs.some((c) => c.apiKeySet);
+  const needsKeys = isFree && isByok && !hasKeys;
 
   // ─── Local state ─────────────────────────────────────────
   const [showCreate, setShowCreate] = useState(false);
@@ -199,7 +208,7 @@ export function DashboardPage() {
           )}
           <Dialog open={showCreate} onOpenChange={setShowCreate}>
             <DialogTrigger asChild>
-              <Button className="gap-2" disabled={isAtLimit}>
+              <Button className="gap-2" disabled={isAtLimit || needsKeys} title={needsKeys ? "Configure your AI keys in Settings first" : undefined}>
                 <Plus className="size-4" /> New Engagement
               </Button>
             </DialogTrigger>
@@ -250,6 +259,33 @@ export function DashboardPage() {
           </Dialog>
         </div>
       </div>
+
+      {/* BYOK keys missing banner */}
+      {needsKeys && (
+        <Card className="border-amber-300 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30">
+          <CardContent className="flex items-center gap-4 py-4">
+            <div className="rounded-full bg-amber-100 dark:bg-amber-900 p-2.5">
+              <Key className="size-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-amber-800 dark:text-amber-300">
+                Set up your AI provider keys
+              </p>
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                You're on the Free (BYOK) plan — configure at least one AI provider API key in Settings before creating engagements.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              className="shrink-0 gap-1.5"
+              onClick={() => navigate("/settings")}
+            >
+              <Settings className="size-4" />
+              Go to Settings
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Session limit banner */}
       {isAtLimit && subscription && (
@@ -378,9 +414,9 @@ export function DashboardPage() {
                 Create your first strategy engagement or use a quick-start template
               </p>
               <Button
-                onClick={() => isAtLimit ? setShowLimitModal(true) : setShowCreate(true)}
+                onClick={() => needsKeys ? navigate("/settings") : isAtLimit ? setShowLimitModal(true) : setShowCreate(true)}
               >
-                Create Engagement
+                {needsKeys ? "Configure AI Keys" : "Create Engagement"}
               </Button>
             </CardContent>
           </Card>
@@ -444,7 +480,9 @@ export function DashboardPage() {
               key={tpl.title}
               className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-primary"
               onClick={() => {
-                if (isAtLimit) {
+                if (needsKeys) {
+                  navigate("/settings");
+                } else if (isAtLimit) {
                   setShowLimitModal(true);
                   setLimitMessage(
                     `You've used all ${sessionsLimit} session${sessionsLimit !== 1 ? "s" : ""} this month. Upgrade to create more engagements.`
