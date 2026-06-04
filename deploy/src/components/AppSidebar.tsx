@@ -1,6 +1,6 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
-import { LayoutDashboard, LogOut, Moon, Settings, Sun } from "lucide-react";
+import { LayoutDashboard, LogOut, Moon, Settings, ShieldCheck, Sun } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import { APP_NAME } from "@/lib/constants";
@@ -29,6 +29,7 @@ import {
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 function NavLink({
@@ -58,6 +59,7 @@ function NavLink({
 
 function SidebarNav() {
   const location = useLocation();
+  const isAdmin = useQuery(api.admin.isAdmin);
 
   return (
     <SidebarContent>
@@ -73,6 +75,14 @@ function SidebarNav() {
                 isActive={location.pathname === item.href}
               />
             ))}
+            {isAdmin && (
+              <NavLink
+                href="/admin"
+                label="Admin"
+                icon={ShieldCheck}
+                isActive={location.pathname === "/admin"}
+              />
+            )}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
