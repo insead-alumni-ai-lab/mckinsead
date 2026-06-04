@@ -35,6 +35,17 @@ const schema = defineSchema({
     aiMode: v.optional(v.union(v.literal("byok"), v.literal("cloud"))),
   }).index("by_userId", ["userId"]),
 
+  // Per-user AI provider config (BYOK keys, models, base URLs)
+  userAiConfig: defineTable({
+    userId: v.id("users"),
+    provider: v.union(v.literal("anthropic"), v.literal("openai")),
+    apiKey: v.string(),
+    model: v.optional(v.string()),
+    baseUrl: v.optional(v.string()),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_provider", ["userId", "provider"]),
+
   // Strategy engagements
   engagements: defineTable({
     userId: v.id("users"),
