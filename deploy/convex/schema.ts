@@ -34,6 +34,20 @@ const schema = defineSchema({
     // For BYOK users — they store their own key client-side (never sent to us)
     aiMode: v.optional(v.union(v.literal("byok"), v.literal("cloud"))),
   }).index("by_userId", ["userId"]),
+
+  // Strategy engagements
+  engagements: defineTable({
+    userId: v.id("users"),
+    company: v.string(),
+    industry: v.string(),
+    question: v.optional(v.string()),
+    geographies: v.optional(v.string()),
+    competitors: v.optional(v.string()),
+    stage: v.string(),
+    progress: v.number(),
+    template: v.optional(v.string()),
+  })
+    .index("by_userId", ["userId"]),
 });
 
 export default schema;

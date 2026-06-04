@@ -1,13 +1,19 @@
 import { useState } from "react";
 import { FaIcon, FA } from "@/components/FaIcon";
 import { useNavigate } from "react-router-dom";
+import { useMutation, useQuery, useAction } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import {
+  AlertTriangle,
   ArrowRight,
   BarChart3,
   Building2,
   Globe,
+  Loader2,
   Plus,
+  Trash2,
   Wrench,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,57 +70,88 @@ const WORKFLOW_STEPS = [
   { icon: FA.export, stage: "Export", desc: "PPTX / PDF" },
 ];
 
-// Demo engagements for testing
-const DEMO_ENGAGEMENTS = [
-  {
-    id: "demo-1",
-    company: "TechCorp International",
-    industry: "Enterprise SaaS",
-    question: "Should we expand into the Asian market?",
-    stage: "frameworks",
-    progress: 35,
-    createdAt: "2026-06-01",
-  },
-  {
-    id: "demo-2",
-    company: "GreenEnergy Co",
-    industry: "Renewable Energy",
-    question: "Which product lines should we invest in vs divest?",
-    stage: "hypothesis",
-    progress: 50,
-    createdAt: "2026-05-28",
-  },
-];
-
 export function DashboardPage() {
   const navigate = useNavigate();
-  const [engagements, setEngagements] = useState(DEMO_ENGAGEMENTS);
+
+  // ─── Convex data ─────────────────────────────────────────
+  const engagements = useQuery(api.engagements.list) ?? [];
+  const subscription = useQuery(api.subscriptions.current);
+  const createEngagement = useMutation(api.engagements.create);
+  const removeEngagement = useMutation(api.engagements.remove);
+  const createCheckout = useAction(api.stripe.createCheckout);
+
+  // ─── Local state ─────────────────────────────────────────
   const [showCreate, setShowCreate] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [limitMessage, setLimitMessage] = useState("");
   const [company, setCompany] = useState("");
   const [industry, setIndustry] = useState("");
   const [question, setQuestion] = useState("");
   const [geos, setGeos] = useState("");
   const [competitors, setCompetitors] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [upgrading, setUpgrading] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  const handleCreate = () => {
-    if (!company.trim()) return;
-    const newEng = {
-      id: `eng-${Date.now()}`,
-      company,
-      industry,
-      question,
-      stage: "scoping",
-      progress: 0,
-      createdAt: new Date().toISOString().split("T")[0],
-    };
-    setEngagements([newEng, ...engagements]);
-    setShowCreate(false);
+  const handleCreate = async () => {
+    if (!company.trim() || creating) return;
+    setCreating(true);
+
+    try {
+      const result = await createEngagement({
+        company,
+        industry,
+        question: question || undefined,
+        geographies: geos || undefined,
+        competitors: competitors || undefined,
+      });
+
+      if (result.success && result.engagementId) {
+        setShowCreate(false);
+        resetForm();
+        navigate(`/engagement/${result.engagementId}`);
+      } else {
+        // Session limit reached
+        setShowCreate(false);
+        setLimitMessage(result.reason ?? "Session limit reached.");
+        setShowLimitModal(true);
+      }
+    } catch (err) {
+      console.error("Failed to create engagement:", err);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleUpgrade = async (plan: "starter" | "premium") => {
+    setUpgrading(plan);
+    try {
+      const result = await createCheckout({ plan });
+      if (result?.url) {
+        window.location.href = result.url;
+      }
+    } catch (err) {
+      console.error("Checkout error:", err);
+    } finally {
+      setUpgrading(null);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await removeEngagement({ id: id as never });
+    } catch (err) {
+      console.error("Failed to delete:", err);
+    }
+    setDeleteConfirm(null);
+  };
+
+  const resetForm = () => {
     setCompany("");
     setIndustry("");
     setQuestion("");
     setGeos("");
     setCompetitors("");
-    navigate(`/engagement/${newEng.id}`);
   };
 
   const stageColor = (stage: string) => {
@@ -130,6 +167,11 @@ export function DashboardPage() {
     return colors[stage] || "bg-muted text-muted-foreground";
   };
 
+  const sessionsUsed = subscription?.sessionsUsed ?? 0;
+  const sessionsLimit = subscription?.sessionsLimit ?? 0;
+  const sessionsRemaining = Math.max(0, sessionsLimit - sessionsUsed);
+  const isAtLimit = sessionsUsed >= sessionsLimit;
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -140,50 +182,168 @@ export function DashboardPage() {
             Manage your strategy engagements
           </p>
         </div>
-        <Dialog open={showCreate} onOpenChange={setShowCreate}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="size-4" /> New Engagement
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>New Strategy Engagement</DialogTitle>
-              <DialogDescription>
-                Define the company and strategic question to analyze
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Company Name *</Label>
-                <Input placeholder="e.g., Acme Corp" value={company} onChange={(e) => setCompany(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Industry *</Label>
-                <Input placeholder="e.g., Consumer Electronics" value={industry} onChange={(e) => setIndustry(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Strategic Question</Label>
-                <Textarea placeholder="e.g., Should we expand into the European market?" value={question} onChange={(e) => setQuestion(e.target.value)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Geographies</Label>
-                  <Input placeholder="e.g., US, Europe, APAC" value={geos} onChange={(e) => setGeos(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Key Competitors</Label>
-                  <Input placeholder="e.g., CompetitorA, B" value={competitors} onChange={(e) => setCompetitors(e.target.value)} />
-                </div>
-              </div>
+        <div className="flex items-center gap-3">
+          {/* Session counter badge */}
+          {subscription && (
+            <div className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full border ${
+              isAtLimit
+                ? "border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400"
+                : sessionsRemaining <= 2
+                  ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+                  : "border-border bg-muted/50 text-muted-foreground"
+            }`}>
+              <Zap className="size-3.5" />
+              <span className="font-medium">{sessionsRemaining}</span>
+              <span className="text-xs">/ {sessionsLimit} sessions left</span>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
-              <Button onClick={handleCreate} disabled={!company.trim()}>Create Engagement</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          )}
+          <Dialog open={showCreate} onOpenChange={setShowCreate}>
+            <DialogTrigger asChild>
+              <Button className="gap-2" disabled={isAtLimit}>
+                <Plus className="size-4" /> New Engagement
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>New Strategy Engagement</DialogTitle>
+                <DialogDescription>
+                  Define the company and strategic question to analyze.
+                  {sessionsRemaining > 0 && (
+                    <span className="block mt-1 text-xs">
+                      This will use 1 of your {sessionsRemaining} remaining session{sessionsRemaining !== 1 ? "s" : ""}.
+                    </span>
+                  )}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Company Name *</Label>
+                  <Input placeholder="e.g., Acme Corp" value={company} onChange={(e) => setCompany(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Industry *</Label>
+                  <Input placeholder="e.g., Consumer Electronics" value={industry} onChange={(e) => setIndustry(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Strategic Question</Label>
+                  <Textarea placeholder="e.g., Should we expand into the European market?" value={question} onChange={(e) => setQuestion(e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Geographies</Label>
+                    <Input placeholder="e.g., US, Europe, APAC" value={geos} onChange={(e) => setGeos(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Key Competitors</Label>
+                    <Input placeholder="e.g., CompetitorA, B" value={competitors} onChange={(e) => setCompetitors(e.target.value)} />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+                <Button onClick={handleCreate} disabled={!company.trim() || creating}>
+                  {creating && <Loader2 className="size-4 mr-2 animate-spin" />}
+                  Create Engagement
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
+
+      {/* Session limit banner */}
+      {isAtLimit && subscription && (
+        <Card className="border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-950/30">
+          <CardContent className="flex items-center gap-4 py-4">
+            <div className="rounded-full bg-red-100 dark:bg-red-900 p-2.5">
+              <AlertTriangle className="size-5 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-red-800 dark:text-red-300">
+                Monthly session limit reached
+              </p>
+              <p className="text-sm text-red-600 dark:text-red-400">
+                You've used all {sessionsLimit} session{sessionsLimit !== 1 ? "s" : ""} on the{" "}
+                <span className="font-medium capitalize">{subscription.plan}</span> plan.
+                {subscription.plan === "free"
+                  ? " Upgrade to Starter for 10 sessions/month."
+                  : subscription.plan === "starter"
+                    ? " Upgrade to Premium for unlimited sessions."
+                    : " Contact us for additional capacity."}
+              </p>
+            </div>
+            {subscription.plan !== "premium" && (
+              <Button
+                size="sm"
+                className="shrink-0"
+                onClick={() => handleUpgrade(subscription.plan === "free" ? "starter" : "premium")}
+                disabled={upgrading !== null}
+              >
+                {upgrading && <Loader2 className="size-4 mr-2 animate-spin" />}
+                Upgrade Now
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Limit Reached Modal (shown after failed creation attempt) */}
+      <Dialog open={showLimitModal} onOpenChange={setShowLimitModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="size-5 text-red-500" />
+              Session Limit Reached
+            </DialogTitle>
+            <DialogDescription>{limitMessage}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            {subscription?.plan === "free" && (
+              <Button
+                className="w-full gap-2"
+                onClick={() => { setShowLimitModal(false); handleUpgrade("starter"); }}
+                disabled={upgrading !== null}
+              >
+                {upgrading === "starter" && <Loader2 className="size-4 animate-spin" />}
+                <Zap className="size-4" />
+                Upgrade to Starter — €2,000/mo
+              </Button>
+            )}
+            {(subscription?.plan === "free" || subscription?.plan === "starter") && (
+              <Button
+                variant={subscription?.plan === "free" ? "outline" : "default"}
+                className="w-full gap-2"
+                onClick={() => { setShowLimitModal(false); handleUpgrade("premium"); }}
+                disabled={upgrading !== null}
+              >
+                {upgrading === "premium" && <Loader2 className="size-4 animate-spin" />}
+                Upgrade to Premium — €10,000/mo
+              </Button>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowLimitModal(false)}>Maybe Later</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation modal */}
+      <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Engagement?</DialogTitle>
+            <DialogDescription>
+              This will permanently remove this engagement and all its data. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteConfirm && handleDelete(deleteConfirm)}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Workflow Overview */}
       <Card>
@@ -217,16 +377,20 @@ export function DashboardPage() {
               <p className="text-sm text-muted-foreground mb-6">
                 Create your first strategy engagement or use a quick-start template
               </p>
-              <Button onClick={() => setShowCreate(true)}>Create Engagement</Button>
+              <Button
+                onClick={() => isAtLimit ? setShowLimitModal(true) : setShowCreate(true)}
+              >
+                Create Engagement
+              </Button>
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-4">
             {engagements.map((eng) => (
               <Card
-                key={eng.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => navigate(`/engagement/${eng.id}`)}
+                key={eng._id}
+                className="group cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => navigate(`/engagement/${eng._id}`)}
               >
                 <CardContent className="flex items-center gap-6 py-4">
                   <div className="rounded-lg bg-primary/10 p-3">
@@ -253,6 +417,16 @@ export function DashboardPage() {
                       />
                     </div>
                   </div>
+                  <button
+                    className="opacity-0 group-hover:opacity-100 p-2 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteConfirm(eng._id);
+                    }}
+                    title="Delete engagement"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
                   <ArrowRight className="size-4 text-muted-foreground" />
                 </CardContent>
               </Card>
@@ -270,9 +444,16 @@ export function DashboardPage() {
               key={tpl.title}
               className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-primary"
               onClick={() => {
-                setCompany("");
-                setQuestion(tpl.desc);
-                setShowCreate(true);
+                if (isAtLimit) {
+                  setShowLimitModal(true);
+                  setLimitMessage(
+                    `You've used all ${sessionsLimit} session${sessionsLimit !== 1 ? "s" : ""} this month. Upgrade to create more engagements.`
+                  );
+                } else {
+                  setCompany("");
+                  setQuestion(tpl.desc);
+                  setShowCreate(true);
+                }
               }}
             >
               <CardContent className="pt-5">
