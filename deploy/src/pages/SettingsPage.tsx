@@ -1,6 +1,6 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { Bot, ChevronRight, Loader2, Moon, Palette, Sun, User } from "lucide-react";
+import { Bot, ChevronRight, CreditCard, ExternalLink, Key, Cloud, Crown, Loader2, Moon, Palette, Sun, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -33,6 +33,9 @@ export function SettingsPage() {
     Array<{ provider: string; configured: boolean; model: string; baseUrl: string }> | null
   >(null);
   const getProviders = useAction(api.ai.providers);
+  const subscription = useQuery(api.subscriptions.current);
+  const createPortal = useAction(api.stripe.createPortal);
+  const [portalLoading, setPortalLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -126,6 +129,86 @@ export function SettingsPage() {
               <p className="text-sm text-muted-foreground">{user?.email}</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <CreditCard className="size-4 text-muted-foreground" />
+            Subscription
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {subscription ? (
+            <>
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`size-10 rounded-full flex items-center justify-center ${
+                      subscription.plan === "premium"
+                        ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                        : subscription.plan === "starter"
+                          ? "bg-blue-500/15 text-blue-600 dark:text-blue-400"
+                          : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                    }`}
+                  >
+                    {subscription.plan === "premium" ? (
+                      <Crown className="size-5" />
+                    ) : subscription.plan === "starter" ? (
+                      <Cloud className="size-5" />
+                    ) : (
+                      <Key className="size-5" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm capitalize">
+                      {subscription.plan} Plan
+                      <span
+                        className={`ml-2 text-xs px-1.5 py-0.5 rounded ${
+                          subscription.status === "active"
+                            ? "bg-green-500/15 text-green-600 dark:text-green-400"
+                            : "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400"
+                        }`}
+                      >
+                        {subscription.status}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {subscription.mode === "byok" ? "Bring Your Own Key" : "Cloud AI"} ·{" "}
+                      {subscription.sessionsUsed} / {subscription.sessionsLimit} sessions used this month
+                    </p>
+                  </div>
+                </div>
+                {subscription.stripeCustomerId && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={portalLoading}
+                    onClick={async () => {
+                      setPortalLoading(true);
+                      try {
+                        const result = await createPortal();
+                        if (result?.url) window.location.href = result.url;
+                      } finally {
+                        setPortalLoading(false);
+                      }
+                    }}
+                  >
+                    {portalLoading ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <>
+                        Manage <ExternalLink className="size-3 ml-1" />
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground px-4">No active subscription</p>
+          )}
         </CardContent>
       </Card>
 

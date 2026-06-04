@@ -1,5 +1,6 @@
-import { useConvexAuth } from "convex/react";
-import { Navigate, Outlet } from "react-router-dom";
+import { useConvexAuth, useQuery } from "convex/react";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { api } from "../../convex/_generated/api";
 import {
   Sidebar,
   SidebarContent,
@@ -65,6 +66,11 @@ function AppSkeleton() {
 
 export function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useConvexAuth();
+  const location = useLocation();
+  const profile = useQuery(
+    api.subscriptions.profile,
+    isAuthenticated ? {} : "skip",
+  );
 
   if (isLoading) {
     return <AppSkeleton />;
@@ -72,6 +78,17 @@ export function ProtectedRoute() {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Still loading profile — show skeleton
+  if (profile === undefined) {
+    return <AppSkeleton />;
+  }
+
+  // Redirect to onboarding if not completed (but don't redirect if already there)
+  const isOnboardingRoute = location.pathname === "/onboarding";
+  if (!profile?.onboardingComplete && !isOnboardingRoute) {
+    return <Navigate to="/onboarding" replace />;
   }
 
   return <Outlet />;

@@ -11,6 +11,7 @@ import {
   EngagementPage,
   LandingPage,
   LoginPage,
+  OnboardingPage,
   SettingsPage,
   SignupPage,
 } from "./pages";
@@ -30,6 +31,7 @@ function App() {
           </Route>
 
           <Route element={<ProtectedRoute />}>
+            <Route path="/onboarding" element={<OnboardingPage />} />
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/engagement/:id" element={<EngagementPage />} />
