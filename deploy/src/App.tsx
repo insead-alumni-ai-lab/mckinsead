@@ -7,6 +7,7 @@ import { PublicOnlyRoute } from "./components/PublicOnlyRoute";
 import { Toaster } from "./components/ui/sonner";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import {
+  AdminPage,
   DashboardPage,
   EngagementPage,
   LandingPage,
@@ -36,6 +37,7 @@ function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/engagement/:id" element={<EngagementPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/admin" element={<AdminPage />} />
             </Route>
           </Route>
 

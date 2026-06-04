@@ -1,3 +1,4 @@
+export { AdminPage } from "./AdminPage";
 export { DashboardPage } from "./DashboardPage";
 export { EngagementPage } from "./EngagementPage";
 export { LandingPage } from "./LandingPage";
