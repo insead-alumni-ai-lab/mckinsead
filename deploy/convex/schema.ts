@@ -65,6 +65,12 @@ const schema = defineSchema({
     stage: v.string(),
     progress: v.number(),
     template: v.optional(v.string()),
+    // Persisted stage data (JSON-stringified)
+    scopingData: v.optional(v.string()),     // SCQA framework
+    hypothesisData: v.optional(v.string()),  // Hypothesis tree
+    synthesisData: v.optional(v.string()),   // Pyramid principle
+    communicationData: v.optional(v.string()), // Slide structure
+    gatesApproved: v.optional(v.string()),   // JSON array of approved gates
   })
     .index("by_userId", ["userId"]),
 
