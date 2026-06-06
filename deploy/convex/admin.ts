@@ -4,7 +4,7 @@
  * Manages: platform AI config, user listing, dashboard stats.
  */
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 // ─── Admin whitelist ──────────────────────────────────────────────────
@@ -201,6 +201,17 @@ export const dashboardStats = query({
       planBreakdown,
       modeBreakdown,
     };
+  },
+});
+
+/**
+ * Internal query: get all platform AI configs (for framework AI to use).
+ * No auth check — only callable from other Convex functions.
+ */
+export const getPlatformAiConfigs = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("platformAiConfig").collect();
   },
 });
 

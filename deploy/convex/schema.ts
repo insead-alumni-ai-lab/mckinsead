@@ -67,6 +67,33 @@ const schema = defineSchema({
     template: v.optional(v.string()),
   })
     .index("by_userId", ["userId"]),
+
+  // AI-generated framework data per engagement
+  frameworkData: defineTable({
+    engagementId: v.id("engagements"),
+    framework: v.string(), // swot | pestel | porter5 | bcg | ansoff | sipoc | value_chain | root_cause
+    data: v.string(), // JSON-stringified framework output
+    status: v.union(
+      v.literal("empty"),
+      v.literal("generating"),
+      v.literal("done"),
+      v.literal("error"),
+    ),
+    error: v.optional(v.string()),
+    generatedAt: v.optional(v.number()),
+  })
+    .index("by_engagementId", ["engagementId"])
+    .index("by_engagementId_framework", ["engagementId", "framework"]),
+
+  // Chat messages for engagement conversations
+  chatMessages: defineTable({
+    engagementId: v.id("engagements"),
+    role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),
+    content: v.string(),
+    stage: v.optional(v.string()),
+    timestamp: v.number(),
+  })
+    .index("by_engagementId", ["engagementId"]),
 });
 
 export default schema;
