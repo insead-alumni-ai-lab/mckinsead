@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { FaIcon, FA } from "@/components/FaIcon";
 import { ChatSidebar } from "@/components/ChatSidebar";
 import { useNavigate, useParams } from "react-router-dom";
@@ -238,7 +238,7 @@ export function EngagementPage() {
       )}
       {currentStage === "hypothesis" && <HypothesisPanel engagement={engagement} engagementId={engagementId} frameworkDataList={frameworkDataList ?? []} />}
       {currentStage === "analysis" && <AnalysisPanel />}
-      {currentStage === "synthesis" && <SynthesisPanel />}
+      {currentStage === "synthesis" && <SynthesisPanel engagement={engagement} engagementId={engagementId} />}
       {currentStage === "communication" && <CommunicationPanel />}
       {currentStage === "export" && <ExportPanel />}
 
@@ -358,21 +358,48 @@ interface EngagementData {
   competitors?: string | null;
   stage: string;
   progress: number;
+  scopingData?: string | null;
+  hypothesisData?: string | null;
+  synthesisData?: string | null;
+  communicationData?: string | null;
+  gatesApproved?: string | null;
 }
 
 function ScopingPanel({ engagement, engagementId }: { engagement: EngagementData; engagementId: Id<"engagements"> }) {
+  // Load persisted scoping data if available
+  const saved = engagement.scopingData ? (() => { try { return JSON.parse(engagement.scopingData!); } catch { return null; } })() : null;
+  const savedGates: string[] = engagement.gatesApproved ? (() => { try { return JSON.parse(engagement.gatesApproved!); } catch { return []; } })() : [];
+
   const [situation, setSituation] = useState(
-    `We are analyzing ${engagement.company} in the ${engagement.industry} industry.`
+    saved?.situation ?? `We are analyzing ${engagement.company} in the ${engagement.industry} industry.`
   );
-  const [complication, setComplication] = useState(engagement.question ?? "");
-  const [question, setQuestion] = useState(engagement.question ?? "");
-  const [answer, setAnswer] = useState("");
-  const [approved, setApproved] = useState(false);
+  const [complication, setComplication] = useState(saved?.complication ?? engagement.question ?? "");
+  const [question, setQuestion] = useState(saved?.question ?? engagement.question ?? "");
+  const [answer, setAnswer] = useState(saved?.answer ?? "");
+  const [approved, setApproved] = useState(savedGates.includes("G1"));
   const updateStage = useMutation(api.engagements.updateStage);
+  const saveStageData = useMutation(api.engagements.saveStageData);
+
+  // Auto-save scoping data on blur
+  const handleSave = useCallback(() => {
+    saveStageData({
+      id: engagementId,
+      scopingData: JSON.stringify({ situation, complication, question, answer }),
+    });
+  }, [saveStageData, engagementId, situation, complication, question, answer]);
 
   const handleApprove = () => {
-    setApproved(!approved);
-    if (!approved) {
+    const newApproved = !approved;
+    setApproved(newApproved);
+    const gates = newApproved
+      ? [...savedGates.filter((g) => g !== "G1"), "G1"]
+      : savedGates.filter((g) => g !== "G1");
+    saveStageData({
+      id: engagementId,
+      scopingData: JSON.stringify({ situation, complication, question, answer }),
+      gatesApproved: JSON.stringify(gates),
+    });
+    if (newApproved) {
       updateStage({ id: engagementId, stage: "frameworks", progress: 14 });
     }
   };
@@ -395,28 +422,28 @@ function ScopingPanel({ engagement, engagementId }: { engagement: EngagementData
               <span className="size-5 rounded-full bg-blue-500/10 text-blue-600 flex items-center justify-center text-[10px] font-bold">S</span>
               Situation
             </Label>
-            <Textarea value={situation} onChange={(e) => setSituation(e.target.value)} rows={3} />
+            <Textarea value={situation} onChange={(e) => setSituation(e.target.value)} onBlur={handleSave} rows={3} />
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-semibold flex items-center gap-2">
               <span className="size-5 rounded-full bg-orange-500/10 text-orange-600 flex items-center justify-center text-[10px] font-bold">C</span>
               Complication
             </Label>
-            <Textarea value={complication} onChange={(e) => setComplication(e.target.value)} rows={3} />
+            <Textarea value={complication} onChange={(e) => setComplication(e.target.value)} onBlur={handleSave} rows={3} />
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-semibold flex items-center gap-2">
               <span className="size-5 rounded-full bg-violet-500/10 text-violet-600 flex items-center justify-center text-[10px] font-bold">Q</span>
               Question
             </Label>
-            <Textarea value={question} onChange={(e) => setQuestion(e.target.value)} rows={3} />
+            <Textarea value={question} onChange={(e) => setQuestion(e.target.value)} onBlur={handleSave} rows={3} />
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-semibold flex items-center gap-2">
               <span className="size-5 rounded-full bg-green-500/10 text-green-600 flex items-center justify-center text-[10px] font-bold">A</span>
               Answer (Hypothesis)
             </Label>
-            <Textarea value={answer} onChange={(e) => setAnswer(e.target.value)} rows={3} />
+            <Textarea value={answer} onChange={(e) => setAnswer(e.target.value)} onBlur={handleSave} rows={3} />
           </div>
         </div>
         <Separator />
@@ -1305,14 +1332,28 @@ function EmptyFramework({ name }: { name: string }) {
 
 // ─── Hypothesis Panel ─────────────────────────────────────────────────────────
 
-function HypothesisPanel({ frameworkDataList }: {
+function HypothesisPanel({ engagement, engagementId, frameworkDataList }: {
   engagement: EngagementData;
   engagementId: Id<"engagements">;
   frameworkDataList: Array<{ framework: string; data: string; status: string }>;
 }) {
-  const [hypotheses, setHypotheses] = useState([
-    { id: "H1", text: "", status: "open", children: [] as Array<{ id: string; text: string; status: string }> },
-  ]);
+  type Hypothesis = { id: string; text: string; status: string; children: Array<{ id: string; text: string; status: string }> };
+  const saved: Hypothesis[] | null = engagement.hypothesisData ? (() => { try { return JSON.parse(engagement.hypothesisData!); } catch { return null; } })() : null;
+
+  const [hypotheses, setHypotheses] = useState<Hypothesis[]>(
+    saved ?? [{ id: "H1", text: "", status: "open", children: [] }]
+  );
+  const saveStageData = useMutation(api.engagements.saveStageData);
+
+  // Auto-save on any change (debounced via useEffect)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveStageData({ id: engagementId, hypothesisData: JSON.stringify(hypotheses) });
+    }, 1000);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [hypotheses, saveStageData, engagementId]);
 
   // Check if frameworks have generated data to pull insights from
   const completedFrameworks = frameworkDataList.filter((f) => f.status === "done").length;
@@ -1478,7 +1519,20 @@ function AnalysisPanel() {
 
 // ─── Synthesis Panel ──────────────────────────────────────────────────────────
 
-function SynthesisPanel() {
+function SynthesisPanel({ engagement, engagementId }: { engagement: EngagementData; engagementId: Id<"engagements"> }) {
+  const saved = engagement.synthesisData ? (() => { try { return JSON.parse(engagement.synthesisData!); } catch { return null; } })() : null;
+
+  const [governingThought, setGoverningThought] = useState(saved?.governingThought ?? "");
+  const [keyLines, setKeyLines] = useState<string[]>(saved?.keyLines ?? ["", "", ""]);
+  const saveStageData = useMutation(api.engagements.saveStageData);
+
+  const handleSave = useCallback(() => {
+    saveStageData({
+      id: engagementId,
+      synthesisData: JSON.stringify({ governingThought, keyLines }),
+    });
+  }, [saveStageData, engagementId, governingThought, keyLines]);
+
   return (
     <Card>
       <CardHeader>
@@ -1490,16 +1544,34 @@ function SynthesisPanel() {
       <CardContent className="space-y-4">
         <div className="border-2 border-primary rounded-lg p-4 bg-primary/5 text-center">
           <Label className="text-xs text-primary font-semibold">Governing Thought</Label>
-          <Textarea placeholder="Enter your governing thought — the one-sentence answer to the strategic question..." className="mt-2 text-center" rows={2} />
+          <Textarea
+            value={governingThought}
+            onChange={(e) => setGoverningThought(e.target.value)}
+            onBlur={handleSave}
+            placeholder="Enter your governing thought — the one-sentence answer to the strategic question..."
+            className="mt-2 text-center"
+            rows={2}
+          />
         </div>
         <div className="grid md:grid-cols-3 gap-3">
-          {[1, 2, 3].map((i) => (
+          {keyLines.map((line, i) => (
             <div key={i} className="border rounded-lg p-4">
               <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                <span className="size-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">{i}</span>
-                Key Line {i}
+                <span className="size-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">{i + 1}</span>
+                Key Line {i + 1}
               </h4>
-              <Textarea placeholder="Supporting argument..." rows={2} className="text-sm mb-2" />
+              <Textarea
+                value={line}
+                onChange={(e) => {
+                  const next = [...keyLines];
+                  next[i] = e.target.value;
+                  setKeyLines(next);
+                }}
+                onBlur={handleSave}
+                placeholder="Supporting argument..."
+                rows={2}
+                className="text-sm mb-2"
+              />
               <div className="text-xs text-muted-foreground">Evidence will be linked from your analyses</div>
             </div>
           ))}

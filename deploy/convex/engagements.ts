@@ -139,6 +139,35 @@ export const updateStage = mutation({
   },
 });
 
+/** Save stage-specific data (SCQA, hypothesis tree, synthesis, etc.). */
+export const saveStageData = mutation({
+  args: {
+    id: v.id("engagements"),
+    scopingData: v.optional(v.string()),
+    hypothesisData: v.optional(v.string()),
+    synthesisData: v.optional(v.string()),
+    communicationData: v.optional(v.string()),
+    gatesApproved: v.optional(v.string()),
+  },
+  handler: async (ctx, { id, ...data }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const eng = await ctx.db.get(id);
+    if (!eng || eng.userId !== userId) throw new Error("Not found");
+
+    const patch: Record<string, string> = {};
+    if (data.scopingData !== undefined) patch.scopingData = data.scopingData;
+    if (data.hypothesisData !== undefined) patch.hypothesisData = data.hypothesisData;
+    if (data.synthesisData !== undefined) patch.synthesisData = data.synthesisData;
+    if (data.communicationData !== undefined) patch.communicationData = data.communicationData;
+    if (data.gatesApproved !== undefined) patch.gatesApproved = data.gatesApproved;
+
+    if (Object.keys(patch).length > 0) {
+      await ctx.db.patch(id, patch);
+    }
+  },
+});
+
 /** Delete an engagement. */
 export const remove = mutation({
   args: { id: v.id("engagements") },
