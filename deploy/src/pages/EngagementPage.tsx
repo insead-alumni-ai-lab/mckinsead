@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { FaIcon, FA } from "@/components/FaIcon";
+import { ChatSidebar } from "@/components/ChatSidebar";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -18,6 +19,7 @@ import {
   Layers,
   LineChart,
   Loader2,
+  MessageSquare,
   Minus,
   Network,
   Plus,
@@ -88,6 +90,7 @@ export function EngagementPage() {
   const engagementId = id as Id<"engagements">;
   const [currentStage, setCurrentStage] = useState<Stage>("scoping");
   const [activeFramework, setActiveFramework] = useState<FrameworkTab>("swot");
+  const [chatOpen, setChatOpen] = useState(false);
 
   // ─── Load engagement from Convex ─────────────────────────
   const engagement = useQuery(api.engagements.get, { id: engagementId });
@@ -238,6 +241,25 @@ export function EngagementPage() {
       {currentStage === "synthesis" && <SynthesisPanel />}
       {currentStage === "communication" && <CommunicationPanel />}
       {currentStage === "export" && <ExportPanel />}
+
+      {/* Chat FAB */}
+      {!chatOpen && (
+        <button
+          onClick={() => setChatOpen(true)}
+          className="fixed bottom-6 right-6 z-40 size-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105 flex items-center justify-center"
+          title="Open AI Strategy Consultant"
+        >
+          <MessageSquare className="size-6" />
+        </button>
+      )}
+
+      {/* Chat Sidebar */}
+      <ChatSidebar
+        engagementId={engagementId}
+        stage={currentStage}
+        isOpen={chatOpen}
+        onClose={() => setChatOpen(false)}
+      />
     </div>
   );
 }
