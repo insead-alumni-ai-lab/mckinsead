@@ -442,6 +442,11 @@ export function DashboardPage() {
                     <p className="text-sm text-muted-foreground truncate">{eng.question || eng.industry}</p>
                   </div>
                   <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="text-right text-xs">
+                      <div className="text-muted-foreground">
+                        {new Date(eng._creationTime).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </div>
+                    </div>
                     <div className="text-right">
                       <div className="font-medium text-foreground">{eng.progress}%</div>
                       <div className="text-xs">Progress</div>
