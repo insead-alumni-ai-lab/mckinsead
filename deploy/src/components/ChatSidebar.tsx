@@ -3,6 +3,7 @@ import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import {
+  Globe,
   Loader2,
   MessageSquare,
   Send,
@@ -26,6 +27,7 @@ export function ChatSidebar({ engagementId, stage, isOpen, onClose }: ChatSideba
   const clearHistory = useMutation(api.chat.clearHistory);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [researchMode, setResearchMode] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -52,6 +54,7 @@ export function ChatSidebar({ engagementId, stage, isOpen, onClose }: ChatSideba
         engagementId,
         message: trimmed,
         stage,
+        researchMode,
       });
       if (!result.success) {
         console.error("Chat error:", result.error);
@@ -157,13 +160,27 @@ export function ChatSidebar({ engagementId, stage, isOpen, onClose }: ChatSideba
 
       {/* Input */}
       <div className="border-t p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <button
+            onClick={() => setResearchMode(!researchMode)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors ${
+              researchMode
+                ? "bg-blue-500/10 text-blue-600 border border-blue-300 dark:border-blue-800"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            }`}
+            title="Research Mode: Get market data, industry stats, and competitive intel"
+          >
+            <Globe className="size-3" />
+            Research Mode {researchMode ? "ON" : ""}
+          </button>
+        </div>
         <div className="flex gap-2">
           <Textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about your engagement..."
+            placeholder={researchMode ? "Ask for market data, industry stats, competitive intel..." : "Ask about your engagement..."}
             rows={2}
             className="resize-none text-sm"
             disabled={sending}
