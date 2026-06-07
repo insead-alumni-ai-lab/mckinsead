@@ -535,17 +535,10 @@ export function SettingsPage() {
               <div className="size-2.5 rounded-full bg-amber-500 animate-pulse" />
               <div>
                 <p className="font-medium text-sm">mckinsead.com</p>
-                <p className="text-sm text-muted-foreground">DNS configuration pending</p>
+                <p className="text-sm text-muted-foreground">Configuration pending</p>
               </div>
             </div>
-            <span className="text-xs px-2 py-1 rounded-full bg-amber-500/10 text-amber-600 font-medium">Pending DNS</span>
-          </div>
-          <div className="mt-3 bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
-            <p className="font-medium text-foreground">Required DNS Records:</p>
-            <div className="font-mono bg-background rounded px-2 py-1">
-              <div>CNAME → cname.vercel-dns.com</div>
-            </div>
-            <p className="mt-1">After DNS propagation, the custom domain will activate automatically.</p>
+            <span className="text-xs px-2 py-1 rounded-full bg-amber-500/10 text-amber-600 font-medium">Pending</span>
           </div>
         </CardContent>
       </Card>
