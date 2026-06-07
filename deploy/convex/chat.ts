@@ -86,6 +86,7 @@ export const sendMessage = action({
     engagementId: v.id("engagements"),
     message: v.string(),
     stage: v.optional(v.string()),
+    researchMode: v.optional(v.boolean()),
   },
   returns: v.object({
     success: v.boolean(),
@@ -117,7 +118,7 @@ export const sendMessage = action({
       const recentMessages = allMessages.slice(-20);
 
       // 5. Build system prompt
-      const systemPrompt = buildSystemPrompt(engagement, frameworkData, args.stage);
+      const systemPrompt = buildSystemPrompt(engagement, frameworkData, args.stage, args.researchMode);
 
       // 6. Resolve AI config
       const userId = engagement.userId as Id<"users">;
@@ -161,6 +162,7 @@ function buildSystemPrompt(
   engagement: { company: string; industry: string; question?: string | null; geographies?: string | null; competitors?: string | null; stage: string },
   frameworkData: FrameworkDataItem[],
   currentStage?: string,
+  researchMode?: boolean,
 ): string {
   const stage = currentStage || engagement.stage;
 
@@ -202,6 +204,18 @@ ${stageGuidance[stage] || "Help the user with their strategy engagement."}
 
 ${fwSummary ? `## Framework Analyses Available\n${fwSummary}` : "## No framework analyses generated yet."}
 
+${researchMode ? `## 🔍 RESEARCH MODE ACTIVE
+You are now in Research Mode. The user wants external data and market intelligence. Provide:
+- Industry market size, growth rates, and trends (cite approximate figures and sources like Statista, IBISWorld, McKinsey Global Institute, Gartner, etc.)
+- Competitive landscape data (market share, key players, recent M&A)
+- Regulatory environment and upcoming changes
+- Technology trends and disruption vectors
+- Customer/consumer behavior shifts
+- Relevant case studies and analogies from your training data
+- Always caveat data with "based on publicly available data as of [date]" and recommend verification
+- Structure your response with clear headers and data points
+- Provide specific numbers wherever possible, even if approximate
+` : ""}
 ## Communication Style
 - Be concise but substantive — like a partner in a case interview
 - Use bullet points for key insights

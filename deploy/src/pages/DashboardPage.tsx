@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaIcon, FA } from "@/components/FaIcon";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useAction } from "convex/react";
@@ -42,6 +42,7 @@ const TEMPLATES = [
   {
     title: "Market Entry",
     desc: "Should we enter a new market? Full PESTEL + Porter analysis.",
+    question: "Should we enter the target market and what would be the optimal entry strategy?",
     frameworks: ["PESTEL", "Porter 5", "SWOT", "Ansoff"],
     icon: Globe,
     color: "text-blue-500",
@@ -49,6 +50,7 @@ const TEMPLATES = [
   {
     title: "Portfolio Optimization",
     desc: "Which business units to invest, harvest, or divest?",
+    question: "How should we reallocate resources across our business portfolio to maximize returns?",
     frameworks: ["BCG", "Value Chain", "SWOT"],
     icon: BarChart3,
     color: "text-violet-500",
@@ -56,9 +58,34 @@ const TEMPLATES = [
   {
     title: "Operational Turnaround",
     desc: "Root cause analysis of margin erosion + hypothesis testing.",
+    question: "What are the root causes of declining margins and how can we reverse the trend?",
     frameworks: ["Root Cause", "SIPOC", "Value Chain", "SWOT"],
     icon: Wrench,
     color: "text-orange-500",
+  },
+  {
+    title: "Digital Transformation",
+    desc: "Assess digital readiness and plan transformation roadmap.",
+    question: "How should we transform our operations and customer experience through digital technologies?",
+    frameworks: ["SWOT", "Value Chain", "PESTEL"],
+    icon: Zap,
+    color: "text-cyan-500",
+  },
+  {
+    title: "M&A Due Diligence",
+    desc: "Strategic fit, synergies, and integration risk assessment.",
+    question: "Should we acquire the target company and what synergies can we capture?",
+    frameworks: ["SWOT", "Porter 5", "BCG", "Value Chain"],
+    icon: Building2,
+    color: "text-emerald-500",
+  },
+  {
+    title: "Competitive Response",
+    desc: "Analyze competitive threats and formulate counter-strategies.",
+    question: "How should we respond to competitive threats to defend and grow our market position?",
+    frameworks: ["Porter 5", "SWOT", "PESTEL", "Ansoff"],
+    icon: AlertTriangle,
+    color: "text-amber-500",
   },
 ];
 
@@ -101,6 +128,16 @@ export function DashboardPage() {
   const [creating, setCreating] = useState(false);
   const [upgrading, setUpgrading] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+
+  // Show onboarding for first-time users
+  useEffect(() => {
+    const seen = localStorage.getItem("mckinsead_onboarding_complete");
+    if (!seen && engagements.length === 0) {
+      setShowOnboarding(true);
+    }
+  }, [engagements.length]);
 
   const handleCreate = async () => {
     if (!company.trim() || creating) return;
@@ -184,14 +221,14 @@ export function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Strategy Cockpit</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-sm">
             Manage your strategy engagements
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           {/* Session counter badge */}
           {subscription && (
             <div className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full border ${
@@ -381,6 +418,112 @@ export function DashboardPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Onboarding Tutorial */}
+      <Dialog open={showOnboarding} onOpenChange={(open) => { if (!open) { setShowOnboarding(false); localStorage.setItem("mckinsead_onboarding_complete", "1"); } }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl">
+              {onboardingStep === 0 && "👋 Welcome to mckinsead"}
+              {onboardingStep === 1 && "🔬 The 7-Stage Methodology"}
+              {onboardingStep === 2 && "🤖 AI-Powered Analysis"}
+              {onboardingStep === 3 && "🚀 Ready to Start!"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            {onboardingStep === 0 && (
+              <div className="text-center space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  mckinsead is your <strong>Agentic Strategy Cockpit</strong> — mirroring McKinsey's
+                  problem-solving methodology as an AI-powered workflow.
+                </p>
+                <div className="grid grid-cols-3 gap-3 mt-4">
+                  {[
+                    { emoji: "🎯", label: "Frame Problems", desc: "Using SCQA" },
+                    { emoji: "📊", label: "Run Frameworks", desc: "8 strategy tools" },
+                    { emoji: "📑", label: "Export Reports", desc: "PDF & HTML" },
+                  ].map((f) => (
+                    <div key={f.label} className="bg-muted/50 rounded-lg p-3 text-center">
+                      <div className="text-2xl mb-1">{f.emoji}</div>
+                      <div className="text-xs font-semibold">{f.label}</div>
+                      <div className="text-[10px] text-muted-foreground">{f.desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {onboardingStep === 1 && (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground mb-3 text-center">
+                  Follow the consulting workflow from problem framing to final deliverable:
+                </p>
+                {WORKFLOW_STEPS.map((step, i) => (
+                  <div key={step.stage} className="flex items-center gap-3 py-1.5">
+                    <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <span className="text-sm"><FaIcon icon={step.icon} /></span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold">{i + 1}. {step.stage}</div>
+                      <div className="text-[11px] text-muted-foreground">{step.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {onboardingStep === 2 && (
+              <div className="text-center space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Every stage is powered by AI — generate framework analyses with one click,
+                  chat with a strategy consultant, and get data-driven insights.
+                </p>
+                <div className="space-y-2 text-left">
+                  {[
+                    { icon: "✨", text: "One-click AI framework generation (SWOT, PESTEL, Porter's 5, etc.)" },
+                    { icon: "💬", text: "AI chat consultant that understands your engagement context" },
+                    { icon: "🔍", text: "Research mode for market data and industry intelligence" },
+                    { icon: "📊", text: "Auto-save everything — pick up where you left off" },
+                  ].map((item) => (
+                    <div key={item.text} className="flex items-start gap-2 text-sm">
+                      <span>{item.icon}</span>
+                      <span className="text-muted-foreground">{item.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {onboardingStep === 3 && (
+              <div className="text-center space-y-4">
+                <div className="text-5xl mb-2">🎉</div>
+                <p className="text-sm text-muted-foreground">
+                  You're all set! Create your first engagement or use a template to get started.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Tip: Use the 💬 chat button inside any engagement for AI guidance at every stage.
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex items-center justify-between">
+            <div className="flex gap-1">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className={`size-2 rounded-full transition-colors ${i === onboardingStep ? "bg-primary" : "bg-muted"}`} />
+              ))}
+            </div>
+            <div className="flex gap-2">
+              {onboardingStep > 0 && (
+                <Button variant="outline" size="sm" onClick={() => setOnboardingStep(onboardingStep - 1)}>Back</Button>
+              )}
+              {onboardingStep < 3 ? (
+                <Button size="sm" onClick={() => setOnboardingStep(onboardingStep + 1)}>Next</Button>
+              ) : (
+                <Button size="sm" onClick={() => { setShowOnboarding(false); localStorage.setItem("mckinsead_onboarding_complete", "1"); }}>
+                  Get Started
+                </Button>
+              )}
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Workflow Overview */}
       <Card>
         <CardHeader className="pb-3">
@@ -401,6 +544,50 @@ export function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Analytics Summary */}
+      {engagements.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            {
+              label: "Total Engagements",
+              value: engagements.length,
+              icon: Building2,
+              color: "text-primary",
+            },
+            {
+              label: "In Progress",
+              value: engagements.filter((e) => e.progress < 100).length,
+              icon: Loader2,
+              color: "text-blue-500",
+            },
+            {
+              label: "Avg. Progress",
+              value: `${Math.round(engagements.reduce((sum, e) => sum + (e.progress || 0), 0) / engagements.length)}%`,
+              icon: BarChart3,
+              color: "text-violet-500",
+            },
+            {
+              label: "Completed",
+              value: engagements.filter((e) => e.progress >= 100 || e.stage === "export").length,
+              icon: Zap,
+              color: "text-emerald-500",
+            },
+          ].map((stat) => (
+            <Card key={stat.label}>
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">{stat.label}</p>
+                    <p className="text-2xl font-bold">{stat.value}</p>
+                  </div>
+                  <stat.icon className={`size-8 ${stat.color} opacity-20`} />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Engagements */}
       <div>
@@ -494,7 +681,7 @@ export function DashboardPage() {
                   );
                 } else {
                   setCompany("");
-                  setQuestion(tpl.desc);
+                  setQuestion(tpl.question || tpl.desc);
                   setShowCreate(true);
                 }
               }}
