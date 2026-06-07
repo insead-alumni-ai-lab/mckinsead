@@ -3,6 +3,7 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import {
   Bot,
   Check,
+  Bell,
   ChevronRight,
   CreditCard,
   Crown,
@@ -517,6 +518,77 @@ export function SettingsPage() {
               Theme follows your system preference
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Custom Domain */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ExternalLink className="size-4 text-muted-foreground" />
+            Custom Domain
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="flex items-center gap-3">
+              <div className="size-2.5 rounded-full bg-amber-500 animate-pulse" />
+              <div>
+                <p className="font-medium text-sm">mckinsead.com</p>
+                <p className="text-sm text-muted-foreground">DNS configuration pending</p>
+              </div>
+            </div>
+            <span className="text-xs px-2 py-1 rounded-full bg-amber-500/10 text-amber-600 font-medium">Pending DNS</span>
+          </div>
+          <div className="mt-3 bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
+            <p className="font-medium text-foreground">Required DNS Records:</p>
+            <div className="font-mono bg-background rounded px-2 py-1">
+              <div>CNAME → cname.vercel-dns.com</div>
+            </div>
+            <p className="mt-1">After DNS propagation, the custom domain will activate automatically.</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Notifications */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Bell className="size-4 text-muted-foreground" />
+            Notifications
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {[
+            { id: "engagement_complete", label: "Engagement completed", desc: "When all stages are finished", defaultOn: true },
+            { id: "ai_generation", label: "AI analysis ready", desc: "When framework generation finishes", defaultOn: true },
+            { id: "weekly_summary", label: "Weekly summary", desc: "Digest of engagement progress", defaultOn: false },
+          ].map((notif) => {
+            const storageKey = `mckinsead_notif_${notif.id}`;
+            const isOn = localStorage.getItem(storageKey) !== null
+              ? localStorage.getItem(storageKey) === "1"
+              : notif.defaultOn;
+            return (
+              <div key={notif.id} className="flex items-center justify-between rounded-lg border p-4">
+                <div>
+                  <p className="font-medium text-sm">{notif.label}</p>
+                  <p className="text-sm text-muted-foreground">{notif.desc}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    localStorage.setItem(storageKey, isOn ? "0" : "1");
+                    window.dispatchEvent(new Event("storage"));
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isOn ? "bg-primary" : "bg-muted"}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isOn ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
+              </div>
+            );
+          })}
+          <p className="text-xs text-muted-foreground text-center pt-1">
+            Email notifications coming soon — preferences are saved locally for now.
+          </p>
         </CardContent>
       </Card>
 
