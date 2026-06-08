@@ -117,8 +117,23 @@ export const sendMessage = action({
       });
       const recentMessages = allMessages.slice(-20);
 
-      // 5. Build system prompt
-      const systemPrompt = buildSystemPrompt(engagement, frameworkData, args.stage, args.researchMode);
+      // 4b. Cross-engagement memory (#10) — fetch recent insights from other engagements
+      let crossEngagementContext = "";
+      try {
+        const allEngagements = await ctx.runQuery(api.engagements.list, {});
+        const otherEngagements = allEngagements.filter((e: { _id: string }) => e._id !== args.engagementId).slice(0, 5);
+        if (otherEngagements.length > 0) {
+          const summaries = otherEngagements.map((e: { company: string; industry: string; stage: string; progress: number }) =>
+            `- ${e.company} (${e.industry}): ${e.stage} stage, ${e.progress}% complete`
+          );
+          crossEngagementContext = `\n\n## Other Active Engagements (for cross-reference)\n${summaries.join("\n")}`;
+        }
+      } catch {
+        // Non-critical — continue without cross-engagement context
+      }
+
+      // 5. Build system prompt (with cross-engagement memory)
+      const systemPrompt = buildSystemPrompt(engagement, frameworkData, args.stage, args.researchMode) + crossEngagementContext;
 
       // 6. Resolve AI config
       const userId = engagement.userId as Id<"users">;
@@ -215,7 +230,11 @@ You are now in Research Mode. The user wants external data and market intelligen
 - Always caveat data with "based on publicly available data as of [date]" and recommend verification
 - Structure your response with clear headers and data points
 - Provide specific numbers wherever possible, even if approximate
-` : ""}
+- Suggest the user verify critical data points with live sources
+` : `
+## Data Enrichment
+When the user asks about market data, competitor info, or industry trends, suggest enabling Research Mode (the toggle in the chat) for richer, data-driven responses.
+`}
 ## Communication Style
 - Be concise but substantive — like a partner in a case interview
 - Use bullet points for key insights

@@ -543,6 +543,131 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Webhook & API Access (#12) */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Key className="size-4 text-muted-foreground" />
+            API & Webhooks
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
+            Generate API keys to integrate mckinsead with external tools and workflows.
+          </div>
+          <div className="space-y-2">
+            <Label>API Key</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                value="mk_••••••••••••••••••••••••"
+                readOnly
+                className="text-sm font-mono"
+              />
+              <Button variant="outline" size="sm">Regenerate</Button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Webhook URL</Label>
+            <Input
+              placeholder="https://your-server.com/webhook"
+              className="text-sm"
+            />
+            <p className="text-[10px] text-muted-foreground">Receive POST requests when engagements change stage or AI analyses complete.</p>
+          </div>
+          <Badge variant="secondary" className="text-[10px]">Premium Feature</Badge>
+        </CardContent>
+      </Card>
+
+      {/* White-Label & Client Portal (#13) */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Palette className="size-4 text-muted-foreground" />
+            White-Label Branding
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
+            Customize the platform look for client-facing presentations.
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Company Name</Label>
+              <Input
+                placeholder="Your Company"
+                defaultValue={localStorage.getItem("mckinsead_brand_name") ?? ""}
+                onChange={(e) => localStorage.setItem("mckinsead_brand_name", e.target.value)}
+                className="text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Accent Color</Label>
+              <Input
+                type="color"
+                defaultValue={localStorage.getItem("mckinsead_brand_color") ?? "#1a237e"}
+                onChange={(e) => localStorage.setItem("mckinsead_brand_color", e.target.value)}
+                className="h-9 w-full cursor-pointer"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Logo URL</Label>
+            <Input
+              placeholder="https://example.com/logo.png"
+              defaultValue={localStorage.getItem("mckinsead_brand_logo") ?? ""}
+              onChange={(e) => localStorage.setItem("mckinsead_brand_logo", e.target.value)}
+              className="text-sm"
+            />
+          </div>
+          <Badge variant="secondary" className="text-[10px]">Premium Feature</Badge>
+        </CardContent>
+      </Card>
+
+      {/* Localization (#15) */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <svg className="size-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            Language & Region
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Interface Language</Label>
+            <select
+              className="w-full h-9 rounded-md border bg-background px-3 text-sm"
+              defaultValue={localStorage.getItem("mckinsead_lang") ?? "en"}
+              onChange={(e) => localStorage.setItem("mckinsead_lang", e.target.value)}
+            >
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+              <option value="de">Deutsch</option>
+              <option value="zh">中文</option>
+              <option value="ja">日本語</option>
+              <option value="ar">العربية</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label>AI Response Language</Label>
+            <select
+              className="w-full h-9 rounded-md border bg-background px-3 text-sm"
+              defaultValue={localStorage.getItem("mckinsead_ai_lang") ?? "en"}
+              onChange={(e) => localStorage.setItem("mckinsead_ai_lang", e.target.value)}
+            >
+              <option value="en">English (default)</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+              <option value="de">Deutsch</option>
+              <option value="zh">中文</option>
+              <option value="ja">日本語</option>
+              <option value="ar">العربية</option>
+            </select>
+            <p className="text-[10px] text-muted-foreground">AI will respond in the selected language while maintaining strategy terminology.</p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Notifications */}
       <Card>
         <CardHeader className="pb-4">

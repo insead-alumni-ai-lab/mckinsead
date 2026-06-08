@@ -125,6 +125,31 @@ const schema = defineSchema({
   })
     .index("by_userId", ["userId"]),
 
+  // ─── Shares (Team Collaboration) ─────────────────────────
+  shares: defineTable({
+    engagementId: v.id("engagements"),
+    ownerId: v.id("users"),
+    sharedWithEmail: v.optional(v.string()),
+    role: v.union(v.literal("viewer"), v.literal("editor"), v.literal("commenter")),
+    token: v.string(),
+    active: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_engagementId", ["engagementId"])
+    .index("by_sharedWithEmail", ["sharedWithEmail"])
+    .index("by_token", ["token"]),
+
+  // ─── Gamification ──────────────────────────────────────────
+  gamification: defineTable({
+    userId: v.id("users"),
+    xp: v.number(),
+    badges: v.optional(v.string()),    // JSON array of badge IDs
+    streak: v.number(),
+    lastAction: v.optional(v.string()),
+    lastActionAt: v.optional(v.number()),
+  })
+    .index("by_userId", ["userId"]),
+
   chatMessages: defineTable({
     engagementId: v.id("engagements"),
     role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),

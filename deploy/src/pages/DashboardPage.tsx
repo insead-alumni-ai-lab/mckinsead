@@ -9,6 +9,7 @@ import {
   ArrowRight,
   BarChart3,
   Building2,
+  Columns,
   Copy,
   Globe,
   Key,
@@ -16,6 +17,7 @@ import {
   Plus,
   Settings,
   Trash2,
+  Trophy,
   Wrench,
   Zap,
 } from "lucide-react";
@@ -113,6 +115,9 @@ export function DashboardPage() {
   const cloneEngagement = useMutation(api.engagements.clone);
   const toggleArchive = useMutation(api.engagements.toggleArchive);
   const createCheckout = useAction(api.stripe.createCheckout);
+  const gamificationProfile = useQuery(api.gamification.getProfile);
+  const [showCompare, setShowCompare] = useState(false);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
 
   // Free-tier (BYOK) users need at least one API key configured
   const isFree = !subscription || subscription.plan === "free";
@@ -692,6 +697,20 @@ export function DashboardPage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Your Engagements</h2>
+          <div className="flex items-center gap-2">
+          {engagements.filter((e) => !e.archived).length >= 2 && (
+            <button
+              onClick={() => { setShowCompare(!showCompare); setCompareIds([]); }}
+              className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-colors ${
+                showCompare
+                  ? "bg-violet-500/10 text-violet-600 border border-violet-300 dark:border-violet-800"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              <Columns className="size-3" />
+              Compare
+            </button>
+          )}
           {engagements.some((e) => e.archived) && (
             <button
               onClick={() => setShowArchived(!showArchived)}
@@ -705,6 +724,7 @@ export function DashboardPage() {
               {showArchived ? "Hide Archived" : `Show Archived (${engagements.filter((e) => e.archived).length})`}
             </button>
           )}
+          </div>
         </div>
         {engagements.length === 0 ? (
           <Card>
@@ -804,6 +824,105 @@ export function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Gamification Widget (#16) */}
+      {gamificationProfile && (
+        <Card className="border-l-4 border-l-amber-500">
+          <CardContent className="pt-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-full bg-amber-100 dark:bg-amber-950 flex items-center justify-center">
+                  <Trophy className="size-5 text-amber-600" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold">Level {gamificationProfile.level} Strategist</div>
+                  <div className="text-xs text-muted-foreground">{gamificationProfile.xp} XP earned</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {gamificationProfile.allBadges.slice(0, 6).map((badge) => (
+                  <span
+                    key={badge.id}
+                    className={`text-lg cursor-default transition-opacity ${gamificationProfile.badges.includes(badge.id) ? "opacity-100" : "opacity-20 grayscale"}`}
+                    title={`${badge.name}: ${badge.description}`}
+                  >
+                    {badge.icon}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="mt-3 bg-muted rounded-full h-2">
+              <div
+                className="bg-amber-500 rounded-full h-2 transition-all"
+                style={{ width: `${Math.min(100, (gamificationProfile.xp % 100))}%` }}
+              />
+            </div>
+            <div className="text-[10px] text-muted-foreground mt-1">
+              {100 - (gamificationProfile.xp % 100)} XP to Level {gamificationProfile.level + 1}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Engagement Comparison (#5) */}
+      {showCompare && engagements.filter((e) => !e.archived).length >= 2 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Columns className="size-4" />
+              Compare Engagements
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 mb-4">
+              {engagements.filter((e) => !e.archived).map((eng) => (
+                <label key={eng._id} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={compareIds.includes(eng._id)}
+                    onChange={(e) => {
+                      if (e.target.checked && compareIds.length < 3) {
+                        setCompareIds([...compareIds, eng._id]);
+                      } else {
+                        setCompareIds(compareIds.filter((id) => id !== eng._id));
+                      }
+                    }}
+                    className="rounded"
+                  />
+                  {eng.company} ({eng.industry})
+                </label>
+              ))}
+            </div>
+            {compareIds.length >= 2 && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="text-left p-2 border-b font-medium text-muted-foreground">Metric</th>
+                      {compareIds.map((id) => {
+                        const eng = engagements.find((e) => e._id === id);
+                        return <th key={id} className="text-left p-2 border-b font-medium">{eng?.company ?? id}</th>;
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {["Stage", "Progress", "Industry"].map((metric) => (
+                      <tr key={metric}>
+                        <td className="p-2 border-b text-muted-foreground">{metric}</td>
+                        {compareIds.map((id) => {
+                          const eng = engagements.find((e) => e._id === id);
+                          const val = metric === "Stage" ? eng?.stage : metric === "Progress" ? `${eng?.progress}%` : eng?.industry;
+                          return <td key={id} className="p-2 border-b">{val ?? "—"}</td>;
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Start Templates */}
       <div>
