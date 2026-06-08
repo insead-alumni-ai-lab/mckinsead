@@ -71,6 +71,7 @@ const schema = defineSchema({
     synthesisData: v.optional(v.string()),   // Pyramid principle
     communicationData: v.optional(v.string()), // Slide structure
     gatesApproved: v.optional(v.string()),   // JSON array of approved gates
+    archived: v.optional(v.boolean()),       // Soft-archive flag
   })
     .index("by_userId", ["userId"]),
 

@@ -5,9 +5,11 @@ import { useMutation, useQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import {
   AlertTriangle,
+  Archive,
   ArrowRight,
   BarChart3,
   Building2,
+  Copy,
   Globe,
   Key,
   Loader2,
@@ -108,6 +110,8 @@ export function DashboardPage() {
   const userAiConfigs = useQuery(api.userAiConfig.list) ?? [];
   const createEngagement = useMutation(api.engagements.create);
   const removeEngagement = useMutation(api.engagements.remove);
+  const cloneEngagement = useMutation(api.engagements.clone);
+  const toggleArchive = useMutation(api.engagements.toggleArchive);
   const createCheckout = useAction(api.stripe.createCheckout);
 
   // Free-tier (BYOK) users need at least one API key configured
@@ -128,6 +132,7 @@ export function DashboardPage() {
   const [creating, setCreating] = useState(false);
   const [upgrading, setUpgrading] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
 
@@ -190,6 +195,28 @@ export function DashboardPage() {
       console.error("Failed to delete:", err);
     }
     setDeleteConfirm(null);
+  };
+
+  const handleClone = async (id: string) => {
+    try {
+      const result = await cloneEngagement({ id: id as never });
+      if (result.success && result.engagementId) {
+        navigate(`/engagement/${result.engagementId}`);
+      } else if (!result.success) {
+        setLimitMessage(result.reason ?? "Could not clone engagement.");
+        setShowLimitModal(true);
+      }
+    } catch (err) {
+      console.error("Clone failed:", err);
+    }
+  };
+
+  const handleArchive = async (id: string) => {
+    try {
+      await toggleArchive({ id: id as never });
+    } catch (err) {
+      console.error("Archive failed:", err);
+    }
   };
 
   const resetForm = () => {
@@ -551,25 +578,25 @@ export function DashboardPage() {
           {[
             {
               label: "Total Engagements",
-              value: engagements.length,
+              value: engagements.filter((e) => !e.archived).length,
               icon: Building2,
               color: "text-primary",
             },
             {
               label: "In Progress",
-              value: engagements.filter((e) => e.progress < 100).length,
+              value: engagements.filter((e) => e.progress < 100 && !e.archived).length,
               icon: Loader2,
               color: "text-blue-500",
             },
             {
               label: "Avg. Progress",
-              value: `${Math.round(engagements.reduce((sum, e) => sum + (e.progress || 0), 0) / engagements.length)}%`,
+              value: `${Math.round(engagements.filter((e) => !e.archived).reduce((sum, e) => sum + (e.progress || 0), 0) / Math.max(1, engagements.filter((e) => !e.archived).length))}%`,
               icon: BarChart3,
               color: "text-violet-500",
             },
             {
               label: "Completed",
-              value: engagements.filter((e) => e.progress >= 100 || e.stage === "export").length,
+              value: engagements.filter((e) => (e.progress >= 100 || e.stage === "export") && !e.archived).length,
               icon: Zap,
               color: "text-emerald-500",
             },
@@ -591,7 +618,22 @@ export function DashboardPage() {
 
       {/* Engagements */}
       <div>
-        <h2 className="text-lg font-semibold mb-4">Your Engagements</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Your Engagements</h2>
+          {engagements.some((e) => e.archived) && (
+            <button
+              onClick={() => setShowArchived(!showArchived)}
+              className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-colors ${
+                showArchived
+                  ? "bg-primary/10 text-primary border border-primary/30"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              <Archive className="size-3" />
+              {showArchived ? "Hide Archived" : `Show Archived (${engagements.filter((e) => e.archived).length})`}
+            </button>
+          )}
+        </div>
         {engagements.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
@@ -609,10 +651,10 @@ export function DashboardPage() {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {engagements.map((eng) => (
+            {engagements.filter((e) => showArchived ? e.archived : !e.archived).map((eng) => (
               <Card
                 key={eng._id}
-                className="group cursor-pointer hover:shadow-md transition-shadow"
+                className={`group cursor-pointer hover:shadow-md transition-shadow ${eng.archived ? "opacity-60" : ""}`}
                 onClick={() => navigate(`/engagement/${eng._id}`)}
               >
                 <CardContent className="flex items-center gap-6 py-4">
@@ -625,6 +667,11 @@ export function DashboardPage() {
                       <Badge variant="secondary" className={stageColor(eng.stage)}>
                         {eng.stage}
                       </Badge>
+                      {eng.archived && (
+                        <Badge variant="outline" className="text-[10px] opacity-70">
+                          <Archive className="size-2.5 mr-1" /> Archived
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground truncate">{eng.question || eng.industry}</p>
                   </div>
@@ -645,20 +692,43 @@ export function DashboardPage() {
                       />
                     </div>
                   </div>
-                  <button
-                    className="opacity-0 group-hover:opacity-100 p-2 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteConfirm(eng._id);
-                    }}
-                    title="Delete engagement"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      className="p-2 rounded-md hover:bg-blue-500/10 text-muted-foreground hover:text-blue-600 transition-all"
+                      onClick={(e) => { e.stopPropagation(); handleClone(eng._id); }}
+                      title="Clone engagement"
+                    >
+                      <Copy className="size-4" />
+                    </button>
+                    <button
+                      className="p-2 rounded-md hover:bg-amber-500/10 text-muted-foreground hover:text-amber-600 transition-all"
+                      onClick={(e) => { e.stopPropagation(); handleArchive(eng._id); }}
+                      title={eng.archived ? "Unarchive" : "Archive"}
+                    >
+                      <Archive className="size-4" />
+                    </button>
+                    <button
+                      className="p-2 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+                      onClick={(e) => { e.stopPropagation(); setDeleteConfirm(eng._id); }}
+                      title="Delete engagement"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
                   <ArrowRight className="size-4 text-muted-foreground" />
                 </CardContent>
               </Card>
             ))}
+            {engagements.filter((e) => showArchived ? e.archived : !e.archived).length === 0 && (
+              <Card>
+                <CardContent className="text-center py-8">
+                  <Archive className="size-8 mx-auto mb-2 text-muted-foreground opacity-30" />
+                  <p className="text-sm text-muted-foreground">
+                    {showArchived ? "No archived engagements" : "All engagements are archived. Click \"Show Archived\" to see them."}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>

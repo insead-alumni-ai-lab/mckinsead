@@ -168,6 +168,80 @@ export const saveStageData = mutation({
   },
 });
 
+/** Clone an engagement (deep copy with all stage data). */
+export const clone = mutation({
+  args: { id: v.id("engagements") },
+  handler: async (ctx, { id }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const eng = await ctx.db.get(id);
+    if (!eng || eng.userId !== userId) throw new Error("Not found");
+
+    // Check session limit
+    const sub = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique();
+    if (!sub || sub.status !== "active") throw new Error("No active subscription");
+    if (sub.sessionsUsed >= sub.sessionsLimit) {
+      return { success: false, reason: "Session limit reached. Upgrade to clone more engagements." };
+    }
+
+    // Create the clone
+    const cloneId = await ctx.db.insert("engagements", {
+      userId,
+      company: `${eng.company} (copy)`,
+      industry: eng.industry,
+      question: eng.question,
+      geographies: eng.geographies,
+      competitors: eng.competitors,
+      stage: eng.stage,
+      progress: eng.progress,
+      template: eng.template,
+      scopingData: eng.scopingData,
+      hypothesisData: eng.hypothesisData,
+      synthesisData: eng.synthesisData,
+      communicationData: eng.communicationData,
+      gatesApproved: eng.gatesApproved,
+    });
+
+    // Clone framework data
+    const frameworks = await ctx.db
+      .query("frameworkData")
+      .withIndex("by_engagementId", (q) => q.eq("engagementId", id))
+      .collect();
+    for (const fw of frameworks) {
+      await ctx.db.insert("frameworkData", {
+        engagementId: cloneId,
+        framework: fw.framework,
+        data: fw.data,
+        status: fw.status,
+        error: fw.error,
+        generatedAt: fw.generatedAt,
+      });
+    }
+
+    // Increment session counter
+    await ctx.db.patch(sub._id, { sessionsUsed: sub.sessionsUsed + 1 });
+
+    return { success: true, engagementId: cloneId };
+  },
+});
+
+/** Toggle archived status on an engagement. */
+export const toggleArchive = mutation({
+  args: { id: v.id("engagements") },
+  handler: async (ctx, { id }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const eng = await ctx.db.get(id);
+    if (!eng || eng.userId !== userId) throw new Error("Not found");
+    const newArchived = !eng.archived;
+    await ctx.db.patch(id, { archived: newArchived });
+    return { archived: newArchived };
+  },
+});
+
 /** Delete an engagement. */
 export const remove = mutation({
   args: { id: v.id("engagements") },
