@@ -1,18 +1,14 @@
 /**
  * Chat — backend for the conversational engagement sidebar.
  *
- * The AI acts as a McKinsey-style strategy consultant guiding the user
- * through each engagement stage (Scope → Diagnose → Hypothesize → Analyze
- * → Synthesize → Communicate). It references framework data already
- * generated and asks the right questions at each gate.
+ * Uses shared LLM utilities from llm.ts (#4).
+ * Sanitizes user inputs before LLM calls (#6).
  */
 import { v } from "convex/values";
 import { query, mutation, action } from "./_generated/server";
-import { internal, api } from "./_generated/api";
+import { api } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import type { Id } from "./_generated/dataModel";
-
-declare const process: { env: Record<string, string | undefined> };
+import { resolveAiConfig, callLLMChat, sanitizeForLLM } from "./llm";
 
 // ─── Queries ──────────────────────────────────────────────────────────
 
@@ -94,11 +90,14 @@ export const sendMessage = action({
   }),
   handler: async (ctx, args) => {
     try {
+      // Sanitize user message (#6)
+      const sanitizedMessage = sanitizeForLLM(args.message);
+
       // 1. Save user message
       await ctx.runMutation(api.chat.addMessage, {
         engagementId: args.engagementId,
         role: "user",
-        content: args.message,
+        content: sanitizedMessage,
         stage: args.stage,
       });
 
@@ -135,9 +134,8 @@ export const sendMessage = action({
       // 5. Build system prompt (with cross-engagement memory)
       const systemPrompt = buildSystemPrompt(engagement, frameworkData, args.stage, args.researchMode) + crossEngagementContext;
 
-      // 6. Resolve AI config
-      const userId = engagement.userId as Id<"users">;
-      const aiConfig = await resolveAiConfig(ctx, userId);
+      // 6. Resolve AI config via shared utility (#4)
+      const aiConfig = await resolveAiConfig(ctx, engagement.userId);
 
       // 7. Build message array for API
       const apiMessages = recentMessages.map((m) => ({
@@ -145,8 +143,8 @@ export const sendMessage = action({
         content: m.content,
       }));
 
-      // 8. Call LLM
-      const response = await callLLM(aiConfig, systemPrompt, apiMessages);
+      // 8. Call LLM via shared utility (#4)
+      const response = await callLLMChat(aiConfig, systemPrompt, apiMessages);
 
       // 9. Save assistant response
       await ctx.runMutation(api.chat.addMessage, {
@@ -244,127 +242,4 @@ When the user asks about market data, competitor info, or industry trends, sugge
 - When recommending next steps, be specific about what to do and why
 - Keep responses under 300 words unless the user asks for detail
 - Use markdown formatting (bold, bullets, numbered lists) for readability`;
-}
-
-// ─── LLM Call ─────────────────────────────────────────────────────────
-
-interface LLMConfig {
-  provider: "anthropic" | "openai";
-  apiKey: string;
-  model: string;
-  baseUrl: string;
-}
-
-async function callLLM(
-  config: LLMConfig,
-  systemPrompt: string,
-  messages: Array<{ role: "user" | "assistant" | "system"; content: string }>,
-): Promise<string> {
-  if (config.provider === "anthropic") {
-    const userMessages = messages.filter((m) => m.role !== "system");
-    const systemParts = [
-      systemPrompt,
-      ...messages.filter((m) => m.role === "system").map((m) => m.content),
-    ].filter(Boolean);
-
-    const body: Record<string, unknown> = {
-      model: config.model,
-      max_tokens: 2048,
-      messages: userMessages.map((m) => ({ role: m.role, content: m.content })),
-    };
-    if (systemParts.length > 0) body.system = systemParts.join("\n\n");
-
-    const res = await fetch(`${config.baseUrl}/v1/messages`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": config.apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) throw new Error(`Anthropic API error (${res.status}): ${await res.text()}`);
-    const data = (await res.json()) as { content: Array<{ type: string; text?: string }> };
-    return data.content.filter((b) => b.type === "text" && b.text).map((b) => b.text).join("");
-  } else {
-    // OpenAI
-    const apiMessages = [
-      { role: "system", content: systemPrompt },
-      ...messages.map((m) => ({ role: m.role, content: m.content })),
-    ];
-
-    const res = await fetch(`${config.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${config.apiKey}`,
-      },
-      body: JSON.stringify({ model: config.model, messages: apiMessages, max_tokens: 2048 }),
-    });
-
-    if (!res.ok) throw new Error(`OpenAI API error (${res.status}): ${await res.text()}`);
-    const data = (await res.json()) as { choices: Array<{ message: { content: string } }> };
-    return data.choices[0]?.message?.content ?? "";
-  }
-}
-
-// ─── AI Config Resolution (reused from frameworkAi) ───────────────────
-
-async function resolveAiConfig(
-  ctx: { runQuery: (fn: any, args: any) => Promise<any> },
-  userId: Id<"users">,
-): Promise<LLMConfig> {
-  // 1. User BYOK keys
-  const userConfigs: Array<{ provider: string; apiKey: string; model?: string; baseUrl?: string }> =
-    await ctx.runQuery(internal.userAiConfig.listForUser, { userId });
-
-  if (userConfigs.length > 0) {
-    const anthropic = userConfigs.find((c: { provider: string }) => c.provider === "anthropic");
-    const config = anthropic ?? userConfigs[0];
-    return {
-      provider: config.provider as "anthropic" | "openai",
-      apiKey: config.apiKey,
-      model: config.model ?? (config.provider === "anthropic" ? "claude-sonnet-4-20250514" : "gpt-4o"),
-      baseUrl: config.baseUrl ?? (config.provider === "anthropic" ? "https://api.anthropic.com" : "https://api.openai.com/v1"),
-    };
-  }
-
-  // 2. Platform managed keys
-  const platformConfigs: Array<{ provider: string; apiKey: string; model?: string; baseUrl?: string }> =
-    await ctx.runQuery(internal.admin.getPlatformAiConfigs, {});
-
-  if (platformConfigs.length > 0) {
-    const anthropic = platformConfigs.find((c: { provider: string }) => c.provider === "anthropic");
-    const config = anthropic ?? platformConfigs[0];
-    return {
-      provider: config.provider as "anthropic" | "openai",
-      apiKey: config.apiKey,
-      model: config.model ?? (config.provider === "anthropic" ? "claude-sonnet-4-20250514" : "gpt-4o"),
-      baseUrl: config.baseUrl ?? (config.provider === "anthropic" ? "https://api.anthropic.com" : "https://api.openai.com/v1"),
-    };
-  }
-
-  // 3. Environment variables
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  if (anthropicKey) {
-    return {
-      provider: "anthropic",
-      apiKey: anthropicKey,
-      model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-20250514",
-      baseUrl: process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com",
-    };
-  }
-
-  const openaiKey = process.env.OPENAI_API_KEY;
-  if (openaiKey) {
-    return {
-      provider: "openai",
-      apiKey: openaiKey,
-      model: process.env.OPENAI_MODEL ?? "gpt-4o",
-      baseUrl: process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
-    };
-  }
-
-  throw new Error("No AI provider configured. Set API keys in Settings, Admin, or environment variables.");
 }

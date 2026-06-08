@@ -1,5 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
 // ─── Queries ──────────────────────────────────────────────────
@@ -19,21 +20,43 @@ export const list = query({
   },
 });
 
-/** Get a single engagement by ID. */
+/** Get a single engagement by ID (owner OR shared user). */
 export const get = query({
   args: { id: v.id("engagements") },
   handler: async (ctx, { id }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return null;
     const eng = await ctx.db.get(id);
-    if (!eng || eng.userId !== userId) return null;
-    return eng;
+    if (!eng) return null;
+
+    // Owner check
+    if (eng.userId === userId) return eng;
+
+    // Collaboration check (#3): look up shares for this engagement + user email
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
+    const email = (user as Record<string, unknown>).email as string | undefined;
+    if (email) {
+      const share = await ctx.db
+        .query("shares")
+        .withIndex("by_engagementId", (q) => q.eq("engagementId", id))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("sharedWithEmail"), email),
+            q.eq(q.field("active"), true),
+          ),
+        )
+        .first();
+      if (share) return eng;
+    }
+
+    return null;
   },
 });
 
 // ─── Mutations ────────────────────────────────────────────────
 
-/** Create a new engagement. Enforces session limits. */
+/** Create a new engagement. Enforces session limits. Wires gamification & audit. */
 export const create = mutation({
   args: {
     company: v.string(),
@@ -63,17 +86,14 @@ export const create = mutation({
     // Monthly reset check: if currentPeriodEnd has passed, reset counter
     const now = Date.now();
     if (sub.currentPeriodEnd && now > sub.currentPeriodEnd) {
-      // Reset sessions for new period (rolling 30-day window from now)
       await ctx.db.patch(sub._id, {
         sessionsUsed: 0,
         currentPeriodStart: now,
         currentPeriodEnd: now + 30 * 24 * 60 * 60 * 1000,
       });
-      // Re-read with reset counter
       sub.sessionsUsed = 0;
     }
 
-    // If no period set yet, initialize it
     if (!sub.currentPeriodStart) {
       await ctx.db.patch(sub._id, {
         currentPeriodStart: now,
@@ -110,6 +130,37 @@ export const create = mutation({
     // ── Increment session counter ──
     await ctx.db.patch(sub._id, { sessionsUsed: sub.sessionsUsed + 1 });
 
+    // ── Gamification (#1): Award XP and badge ──
+    await ctx.scheduler.runAfter(0, internal.gamification.internalAwardXP, {
+      userId,
+      amount: 10,
+      reason: "Created engagement",
+    });
+    await ctx.scheduler.runAfter(0, internal.gamification.internalAwardBadge, {
+      userId,
+      badgeId: "first_engagement",
+    });
+
+    // Check for multi_engagement badge
+    const allEngs = await ctx.db
+      .query("engagements")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+    if (allEngs.length >= 5) {
+      await ctx.scheduler.runAfter(0, internal.gamification.internalAwardBadge, {
+        userId,
+        badgeId: "multi_engagement",
+      });
+    }
+
+    // ── Audit trail (#2) ──
+    await ctx.scheduler.runAfter(0, internal.audit.logAction, {
+      userId,
+      engagementId: engId,
+      action: "engagement.created",
+      details: JSON.stringify({ company: args.company, industry: args.industry }),
+    });
+
     return {
       success: true,
       engagementId: engId,
@@ -135,6 +186,16 @@ export const updateStage = mutation({
     if (progress !== undefined) patch.progress = progress;
     if (Object.keys(patch).length > 0) {
       await ctx.db.patch(id, patch);
+    }
+
+    // ── Audit trail (#2) ──
+    if (stage !== undefined) {
+      await ctx.scheduler.runAfter(0, internal.audit.logAction, {
+        userId,
+        engagementId: id,
+        action: "engagement.stageChanged",
+        details: JSON.stringify({ stage, progress }),
+      });
     }
   },
 });
@@ -224,6 +285,21 @@ export const clone = mutation({
     // Increment session counter
     await ctx.db.patch(sub._id, { sessionsUsed: sub.sessionsUsed + 1 });
 
+    // ── Gamification (#1) ──
+    await ctx.scheduler.runAfter(0, internal.gamification.internalAwardXP, {
+      userId,
+      amount: 5,
+      reason: "Cloned engagement",
+    });
+
+    // ── Audit trail (#2) ──
+    await ctx.scheduler.runAfter(0, internal.audit.logAction, {
+      userId,
+      engagementId: cloneId,
+      action: "engagement.cloned",
+      details: JSON.stringify({ sourceId: id, company: eng.company }),
+    });
+
     return { success: true, engagementId: cloneId };
   },
 });
@@ -250,6 +326,14 @@ export const remove = mutation({
     if (!userId) throw new Error("Not authenticated");
     const eng = await ctx.db.get(id);
     if (!eng || eng.userId !== userId) throw new Error("Not found");
+
+    // ── Audit trail (#2) ──
+    await ctx.scheduler.runAfter(0, internal.audit.logAction, {
+      userId,
+      action: "engagement.deleted",
+      details: JSON.stringify({ company: eng.company, industry: eng.industry }),
+    });
+
     await ctx.db.delete(id);
   },
 });

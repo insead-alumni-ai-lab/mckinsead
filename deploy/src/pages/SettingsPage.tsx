@@ -94,6 +94,11 @@ export function SettingsPage() {
   const [success, setSuccess] = useState("");
   const [passwordStep, setPasswordStep] = useState<"request" | "verify">("request");
 
+  // User preferences (DB-persisted, #7)
+  const dbPrefs = useQuery(api.userPreferences.getAll) ?? {};
+  const setPref = useMutation(api.userPreferences.set);
+  const getPref = (key: string, fallback: string) => dbPrefs[key] ?? fallback;
+
   // AI provider form states
   const [providerForms, setProviderForms] = useState<Record<ProviderName, ProviderFormState>>({
     anthropic: { apiKey: "", model: "", baseUrl: "", showKey: false, saving: false, saved: false, removing: false },
@@ -595,8 +600,8 @@ export function SettingsPage() {
               <Label>Company Name</Label>
               <Input
                 placeholder="Your Company"
-                defaultValue={localStorage.getItem("mckinsead_brand_name") ?? ""}
-                onChange={(e) => localStorage.setItem("mckinsead_brand_name", e.target.value)}
+                value={getPref("brand_name", "")}
+                onChange={(e) => setPref({ key: "brand_name", value: e.target.value })}
                 className="text-sm"
               />
             </div>
@@ -604,8 +609,8 @@ export function SettingsPage() {
               <Label>Accent Color</Label>
               <Input
                 type="color"
-                defaultValue={localStorage.getItem("mckinsead_brand_color") ?? "#1a237e"}
-                onChange={(e) => localStorage.setItem("mckinsead_brand_color", e.target.value)}
+                value={getPref("brand_color", "#1a237e")}
+                onChange={(e) => setPref({ key: "brand_color", value: e.target.value })}
                 className="h-9 w-full cursor-pointer"
               />
             </div>
@@ -614,8 +619,8 @@ export function SettingsPage() {
             <Label>Logo URL</Label>
             <Input
               placeholder="https://example.com/logo.png"
-              defaultValue={localStorage.getItem("mckinsead_brand_logo") ?? ""}
-              onChange={(e) => localStorage.setItem("mckinsead_brand_logo", e.target.value)}
+              value={getPref("brand_logo", "")}
+              onChange={(e) => setPref({ key: "brand_logo", value: e.target.value })}
               className="text-sm"
             />
           </div>
@@ -636,8 +641,8 @@ export function SettingsPage() {
             <Label>Interface Language</Label>
             <select
               className="w-full h-9 rounded-md border bg-background px-3 text-sm"
-              defaultValue={localStorage.getItem("mckinsead_lang") ?? "en"}
-              onChange={(e) => localStorage.setItem("mckinsead_lang", e.target.value)}
+              value={getPref("lang", "en")}
+              onChange={(e) => setPref({ key: "lang", value: e.target.value })}
             >
               <option value="en">English</option>
               <option value="fr">Français</option>
@@ -652,8 +657,8 @@ export function SettingsPage() {
             <Label>AI Response Language</Label>
             <select
               className="w-full h-9 rounded-md border bg-background px-3 text-sm"
-              defaultValue={localStorage.getItem("mckinsead_ai_lang") ?? "en"}
-              onChange={(e) => localStorage.setItem("mckinsead_ai_lang", e.target.value)}
+              value={getPref("ai_lang", "en")}
+              onChange={(e) => setPref({ key: "ai_lang", value: e.target.value })}
             >
               <option value="en">English (default)</option>
               <option value="fr">Français</option>
@@ -682,10 +687,9 @@ export function SettingsPage() {
             { id: "ai_generation", label: "AI analysis ready", desc: "When framework generation finishes", defaultOn: true },
             { id: "weekly_summary", label: "Weekly summary", desc: "Digest of engagement progress", defaultOn: false },
           ].map((notif) => {
-            const storageKey = `mckinsead_notif_${notif.id}`;
-            const isOn = localStorage.getItem(storageKey) !== null
-              ? localStorage.getItem(storageKey) === "1"
-              : notif.defaultOn;
+            const prefKey = `notif_${notif.id}`;
+            const prefVal = dbPrefs[prefKey];
+            const isOn = prefVal !== undefined ? prefVal === "1" : notif.defaultOn;
             return (
               <div key={notif.id} className="flex items-center justify-between rounded-lg border p-4">
                 <div>
@@ -694,8 +698,7 @@ export function SettingsPage() {
                 </div>
                 <button
                   onClick={() => {
-                    localStorage.setItem(storageKey, isOn ? "0" : "1");
-                    window.dispatchEvent(new Event("storage"));
+                    setPref({ key: prefKey, value: isOn ? "0" : "1" });
                   }}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isOn ? "bg-primary" : "bg-muted"}`}
                 >
@@ -705,7 +708,7 @@ export function SettingsPage() {
             );
           })}
           <p className="text-xs text-muted-foreground text-center pt-1">
-            Email notifications coming soon — preferences are saved locally for now.
+            Email notifications coming soon — preferences are synced to your account.
           </p>
         </CardContent>
       </Card>

@@ -3,6 +3,7 @@
  */
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 // ─── Audit Log ────────────────────────────────────────────────────────
@@ -109,7 +110,24 @@ export const saveVersion = mutation({
       createdAt: Date.now(),
     });
 
-    return { version: existing.length + 1 };
+    const versionNum = existing.length + 1;
+
+    // ── Gamification (#1): Award XP for saving a version ──
+    await ctx.scheduler.runAfter(0, internal.gamification.internalAwardXP, {
+      userId,
+      amount: 5,
+      reason: `Saved version ${versionNum}`,
+    });
+
+    // Award version_tracker badge after 3+ versions
+    if (versionNum >= 3) {
+      await ctx.scheduler.runAfter(0, internal.gamification.internalAwardBadge, {
+        userId,
+        badgeId: "version_tracker",
+      });
+    }
+
+    return { version: versionNum };
   },
 });
 

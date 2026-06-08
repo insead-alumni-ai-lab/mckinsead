@@ -2,24 +2,15 @@
  * Framework AI — Convex actions that call the LLM to generate
  * structured framework analysis for engagements.
  *
- * Each framework has a specialized prompt that produces JSON output.
- * Supports both platform (managed) and user (BYOK) API keys.
+ * Uses shared LLM utilities from llm.ts (#4).
+ * Wires gamification (#1) and audit trail (#2).
  */
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { internal, api } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
-
-declare const process: { env: Record<string, string | undefined> };
+import { resolveAiConfig, callLLMPrompt, parseJsonResponse, sanitizeForLLM } from "./llm";
 
 // ─── Types ────────────────────────────────────────────────────
-
-interface LLMConfig {
-  provider: "anthropic" | "openai";
-  apiKey: string;
-  model: string;
-  baseUrl: string;
-}
 
 interface EngagementContext {
   company: string;
@@ -187,140 +178,6 @@ Respond ONLY with valid JSON in this exact format (no markdown, no explanation):
 }`,
 };
 
-// ─── LLM Config Resolution ───────────────────────────────────
-
-async function resolveAiConfig(
-  ctx: { runQuery: (fn: any, args: any) => Promise<any> },
-  userId: Id<"users">,
-): Promise<LLMConfig> {
-  // 1. Try user's own keys (BYOK)
-  const userConfigs: Array<{ provider: string; apiKey: string; model?: string; baseUrl?: string }> =
-    await ctx.runQuery(internal.userAiConfig.listForUser, { userId });
-
-  if (userConfigs.length > 0) {
-    // Prefer anthropic, fall back to openai
-    const anthropic = userConfigs.find((c: { provider: string }) => c.provider === "anthropic");
-    const config = anthropic ?? userConfigs[0];
-    return {
-      provider: config.provider as "anthropic" | "openai",
-      apiKey: config.apiKey,
-      model: config.model ?? (config.provider === "anthropic" ? "claude-sonnet-4-20250514" : "gpt-4o"),
-      baseUrl: config.baseUrl ?? (config.provider === "anthropic" ? "https://api.anthropic.com" : "https://api.openai.com/v1"),
-    };
-  }
-
-  // 2. Try platform managed keys
-  const platformConfigs: Array<{ provider: string; apiKey: string; model?: string; baseUrl?: string }> =
-    await ctx.runQuery(internal.admin.getPlatformAiConfigs, {});
-
-  if (platformConfigs.length > 0) {
-    const anthropic = platformConfigs.find((c: { provider: string }) => c.provider === "anthropic");
-    const config = anthropic ?? platformConfigs[0];
-    return {
-      provider: config.provider as "anthropic" | "openai",
-      apiKey: config.apiKey,
-      model: config.model ?? (config.provider === "anthropic" ? "claude-sonnet-4-20250514" : "gpt-4o"),
-      baseUrl: config.baseUrl ?? (config.provider === "anthropic" ? "https://api.anthropic.com" : "https://api.openai.com/v1"),
-    };
-  }
-
-  // 3. Fall back to env vars
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  if (anthropicKey) {
-    return {
-      provider: "anthropic",
-      apiKey: anthropicKey,
-      model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-20250514",
-      baseUrl: process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com",
-    };
-  }
-
-  const openaiKey = process.env.OPENAI_API_KEY;
-  if (openaiKey) {
-    return {
-      provider: "openai",
-      apiKey: openaiKey,
-      model: process.env.OPENAI_MODEL ?? "gpt-4o",
-      baseUrl: process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
-    };
-  }
-
-  throw new Error("No AI provider configured. Please set your API keys in Settings.");
-}
-
-// ─── Raw LLM call ─────────────────────────────────────────────
-
-async function callLLM(config: LLMConfig, prompt: string): Promise<string> {
-  if (config.provider === "anthropic") {
-    const res = await fetch(`${config.baseUrl}/v1/messages`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": config.apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: config.model,
-        max_tokens: 4096,
-        temperature: 0.3,
-        system: "You are a senior strategy consultant. Always respond with valid JSON only — no markdown fences, no explanations, no preamble.",
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Anthropic API error (${res.status}): ${errText}`);
-    }
-
-    const data = (await res.json()) as {
-      content: Array<{ type: string; text?: string }>;
-    };
-    return data.content
-      .filter((b) => b.type === "text" && b.text)
-      .map((b) => b.text)
-      .join("");
-  } else {
-    const res = await fetch(`${config.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${config.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: config.model,
-        temperature: 0.3,
-        max_tokens: 4096,
-        messages: [
-          { role: "system", content: "You are a senior strategy consultant. Always respond with valid JSON only — no markdown fences, no explanations, no preamble." },
-          { role: "user", content: prompt },
-        ],
-      }),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`OpenAI API error (${res.status}): ${errText}`);
-    }
-
-    const data = (await res.json()) as {
-      choices: Array<{ message: { content: string } }>;
-    };
-    return data.choices[0]?.message?.content ?? "";
-  }
-}
-
-// ─── Parse JSON from LLM response ────────────────────────────
-
-function parseJsonResponse(text: string): unknown {
-  // Strip markdown fences if present
-  let cleaned = text.trim();
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?\s*```$/, "");
-  }
-  return JSON.parse(cleaned);
-}
-
 // ─── Main Generate Action ─────────────────────────────────────
 
 export const generateFramework = action({
@@ -354,20 +211,20 @@ export const generateFramework = action({
     });
 
     try {
-      // Resolve AI config (user keys > platform keys > env vars)
+      // Resolve AI config via shared utility (#4)
       const aiConfig = await resolveAiConfig(ctx, engagement.userId);
 
-      // Build context
+      // Build context — sanitize user-supplied fields (#6)
       const engCtx: EngagementContext = {
-        company: engagement.company,
-        industry: engagement.industry,
-        question: engagement.question ?? undefined,
-        geographies: engagement.geographies ?? undefined,
-        competitors: engagement.competitors ?? undefined,
+        company: sanitizeForLLM(engagement.company),
+        industry: sanitizeForLLM(engagement.industry),
+        question: engagement.question ? sanitizeForLLM(engagement.question) : undefined,
+        geographies: engagement.geographies ? sanitizeForLLM(engagement.geographies) : undefined,
+        competitors: engagement.competitors ? sanitizeForLLM(engagement.competitors) : undefined,
       };
 
-      // Call LLM
-      const rawResponse = await callLLM(aiConfig, promptFn(engCtx));
+      // Call LLM via shared utility (#4)
+      const rawResponse = await callLLMPrompt(aiConfig, promptFn(engCtx));
 
       // Parse JSON
       const parsed = parseJsonResponse(rawResponse);
@@ -378,6 +235,21 @@ export const generateFramework = action({
         framework,
         data: JSON.stringify(parsed),
         status: "done",
+      });
+
+      // ── Gamification (#1): Award XP for generating a framework ──
+      await ctx.runMutation(internal.gamification.internalAwardXP, {
+        userId: engagement.userId,
+        amount: 15,
+        reason: `Generated ${framework} analysis`,
+      });
+
+      // ── Audit trail (#2) ──
+      await ctx.runMutation(internal.audit.logAction, {
+        userId: engagement.userId,
+        engagementId,
+        action: "framework.generated",
+        details: JSON.stringify({ framework }),
       });
 
       return { success: true };
@@ -429,6 +301,18 @@ export const generateAll = action({
     }
 
     const allSuccess = results.every((r) => r.success);
+
+    // ── Gamification (#1): Award badge if all 8 generated successfully ──
+    if (allSuccess) {
+      const engagement = await ctx.runQuery(api.engagements.get, { id: engagementId });
+      if (engagement) {
+        await ctx.runMutation(internal.gamification.internalAwardBadge, {
+          userId: engagement.userId,
+          badgeId: "framework_master",
+        });
+      }
+    }
+
     return { success: allSuccess, results };
   },
 });

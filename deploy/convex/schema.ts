@@ -150,6 +150,15 @@ const schema = defineSchema({
   })
     .index("by_userId", ["userId"]),
 
+  // ─── User Preferences (persisted settings) ─────────────────
+  userPreferences: defineTable({
+    userId: v.id("users"),
+    key: v.string(),          // e.g. "brand_name", "lang", "notif_email"
+    value: v.string(),        // JSON-stringified value
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_key", ["userId", "key"]),
+
   chatMessages: defineTable({
     engagementId: v.id("engagements"),
     role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),

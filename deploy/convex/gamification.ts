@@ -3,7 +3,7 @@
  * XP tracking, badges, and skill progression.
  */
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 const BADGES = [
@@ -87,6 +87,64 @@ export const awardBadge = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) return;
 
+    const existing = await ctx.db
+      .query("gamification")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+
+    if (existing) {
+      const badges: string[] = existing.badges ? JSON.parse(existing.badges) : [];
+      if (!badges.includes(badgeId)) {
+        badges.push(badgeId);
+        await ctx.db.patch(existing._id, { badges: JSON.stringify(badges) });
+      }
+    } else {
+      await ctx.db.insert("gamification", {
+        userId,
+        xp: 0,
+        badges: JSON.stringify([badgeId]),
+        streak: 1,
+        lastAction: `Earned badge: ${badgeId}`,
+        lastActionAt: Date.now(),
+      });
+    }
+  },
+});
+
+// ─── Internal mutations (called from other backend functions) ─────────
+
+/** Award XP (internal — called from engagements, frameworkAi, etc.). */
+export const internalAwardXP = internalMutation({
+  args: { userId: v.id("users"), amount: v.number(), reason: v.string() },
+  handler: async (ctx, { userId, amount, reason }) => {
+    const existing = await ctx.db
+      .query("gamification")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        xp: existing.xp + amount,
+        lastAction: reason,
+        lastActionAt: Date.now(),
+      });
+    } else {
+      await ctx.db.insert("gamification", {
+        userId,
+        xp: amount,
+        badges: "[]",
+        streak: 1,
+        lastAction: reason,
+        lastActionAt: Date.now(),
+      });
+    }
+  },
+});
+
+/** Award a badge (internal — called from other backend functions). */
+export const internalAwardBadge = internalMutation({
+  args: { userId: v.id("users"), badgeId: v.string() },
+  handler: async (ctx, { userId, badgeId }) => {
     const existing = await ctx.db
       .query("gamification")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
