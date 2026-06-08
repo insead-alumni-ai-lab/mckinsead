@@ -5,8 +5,6 @@ import { api } from "../../convex/_generated/api";
 import {
   BarChart3,
   Building2,
-  FileBarChart,
-  Loader2,
   Moon,
   Plus,
   Search,
@@ -35,7 +33,7 @@ export function CommandPalette() {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const engagements = useQuery(api.engagements.list) ?? [];
 
   // Register keyboard shortcut
@@ -100,18 +98,20 @@ export function CommandPalette() {
       id: "theme-toggle",
       label: theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode",
       icon: theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />,
-      action: () => { setTheme(theme === "dark" ? "light" : "dark"); close(); },
+      action: () => { toggleTheme?.(); close(); },
       keywords: ["theme", "dark", "light", "mode"],
     },
     // Engagements
-    ...engagements.filter((e) => !e.archived).map((eng) => ({
-      id: `eng-${eng._id}`,
-      label: eng.company,
-      description: `${eng.industry} — ${eng.stage} (${eng.progress}%)`,
-      icon: <Building2 className="size-4" />,
-      action: () => { navigate(`/engagement/${eng._id}`); close(); },
-      keywords: [eng.industry, eng.stage, eng.question ?? ""].filter(Boolean),
-    })),
+    ...engagements
+      .filter((eng: { archived?: boolean }) => !eng.archived)
+      .map((eng: { _id: string; company: string; industry: string; stage: string; progress: number; question?: string | null; archived?: boolean }) => ({
+        id: `eng-${eng._id}`,
+        label: eng.company,
+        description: `${eng.industry} — ${eng.stage} (${eng.progress}%)`,
+        icon: <Building2 className="size-4" />,
+        action: () => { navigate(`/engagement/${eng._id}`); close(); },
+        keywords: [eng.industry, eng.stage, eng.question ?? ""].filter(Boolean),
+      })),
   ];
 
   // Filter commands

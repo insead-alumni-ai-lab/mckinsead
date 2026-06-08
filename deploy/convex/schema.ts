@@ -93,6 +93,28 @@ const schema = defineSchema({
     .index("by_engagementId_framework", ["engagementId", "framework"]),
 
   // Chat messages for engagement conversations
+  // ─── Audit Trail ────────────────────────────────────────
+  auditLog: defineTable({
+    userId: v.id("users"),
+    engagementId: v.optional(v.id("engagements")),
+    action: v.string(),            // e.g. "engagement.created", "framework.generated", "stage.changed"
+    details: v.optional(v.string()), // JSON blob with additional context
+    timestamp: v.number(),
+  })
+    .index("by_engagementId", ["engagementId"])
+    .index("by_userId", ["userId"]),
+
+  // ─── Engagement Versions (snapshots) ───────────────────
+  engagementVersions: defineTable({
+    engagementId: v.id("engagements"),
+    userId: v.id("users"),
+    version: v.number(),
+    label: v.optional(v.string()),  // User-defined label like "Pre-meeting draft"
+    snapshot: v.string(),           // JSON blob of full engagement state
+    createdAt: v.number(),
+  })
+    .index("by_engagementId", ["engagementId"]),
+
   chatMessages: defineTable({
     engagementId: v.id("engagements"),
     role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),

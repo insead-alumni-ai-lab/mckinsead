@@ -12,10 +12,12 @@ import {
   Check,
   CheckCircle2,
   ChevronRight,
+  Clock,
   Download,
   FileBarChart,
   GitBranch,
   Globe,
+  History,
   Layers,
   LayoutList,
   LineChart,
@@ -25,6 +27,8 @@ import {
   Network,
   Plus,
   RefreshCw,
+  RotateCcw,
+  Save,
   Search,
   Shield,
   Sparkles,
@@ -53,6 +57,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -92,12 +104,18 @@ export function EngagementPage() {
   const [currentStage, setCurrentStage] = useState<Stage>("scoping");
   const [activeFramework, setActiveFramework] = useState<FrameworkTab>("swot");
   const [chatOpen, setChatOpen] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
+  const [versionLabel, setVersionLabel] = useState("");
+  const [savingVersion, setSavingVersion] = useState(false);
 
   // ─── Load engagement from Convex ─────────────────────────
   const engagement = useQuery(api.engagements.get, { id: engagementId });
   const frameworkDataList = useQuery(api.frameworkData.listByEngagement, { engagementId });
+  const versions = useQuery(api.audit.listVersions, { engagementId });
   const initializeFrameworks = useMutation(api.frameworkData.initializeAll);
   const updateStage = useMutation(api.engagements.updateStage);
+  const saveVersion = useMutation(api.audit.saveVersion);
+  const restoreVersion = useMutation(api.audit.restoreVersion);
 
   // Initialize frameworks on first load
   useEffect(() => {
@@ -148,10 +166,98 @@ export function EngagementPage() {
           <h1 className="text-xl font-bold">{engagement.company}</h1>
           <p className="text-sm text-muted-foreground">{engagement.industry}{engagement.question ? ` — ${engagement.question}` : ""}</p>
         </div>
-        <Badge variant="secondary" className="bg-primary/10 text-primary">
-          {STAGES.find((s) => s.id === currentStage)?.label || currentStage}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="bg-primary/10 text-primary">
+            {STAGES.find((s) => s.id === currentStage)?.label || currentStage}
+          </Badge>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setShowVersions(true)}>
+            <History className="size-3" />
+            Versions{versions && versions.length > 0 ? ` (${versions.length})` : ""}
+          </Button>
+        </div>
       </div>
+
+      {/* Version Management Dialog */}
+      <Dialog open={showVersions} onOpenChange={setShowVersions}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="size-5" />
+              Version History
+            </DialogTitle>
+            <DialogDescription>
+              Save snapshots of your engagement and restore previous versions.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {/* Save new version */}
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Version label (optional)"
+                value={versionLabel}
+                onChange={(e) => setVersionLabel(e.target.value)}
+                className="text-sm"
+              />
+              <Button
+                size="sm"
+                className="gap-1.5 shrink-0"
+                disabled={savingVersion}
+                onClick={async () => {
+                  setSavingVersion(true);
+                  try {
+                    await saveVersion({ engagementId, label: versionLabel || undefined });
+                    setVersionLabel("");
+                  } catch (err) {
+                    console.error("Save version failed:", err);
+                  } finally {
+                    setSavingVersion(false);
+                  }
+                }}
+              >
+                {savingVersion ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />}
+                Save
+              </Button>
+            </div>
+            <Separator />
+            {/* Version list */}
+            <div className="max-h-[240px] overflow-y-auto space-y-2">
+              {(!versions || versions.length === 0) && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No versions saved yet. Save a snapshot to track your progress.
+                </p>
+              )}
+              {versions?.map((ver) => (
+                <div key={ver._id} className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <div>
+                    <div className="text-sm font-medium">{ver.label}</div>
+                    <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      <Clock className="size-2.5" />
+                      {new Date(ver.createdAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    onClick={async () => {
+                      if (confirm(`Restore "${ver.label}"? Current unsaved changes will be overwritten.`)) {
+                        await restoreVersion({ engagementId, versionId: ver._id as Id<"engagementVersions"> });
+                        setShowVersions(false);
+                      }
+                    }}
+                  >
+                    <RotateCcw className="size-3" />
+                    Restore
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowVersions(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Overall Progress Bar */}
       <div className="flex items-center gap-3 text-sm">
