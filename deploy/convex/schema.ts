@@ -115,6 +115,16 @@ const schema = defineSchema({
   })
     .index("by_engagementId", ["engagementId"]),
 
+  // ─── Prompt Library ─────────────────────────────────────
+  promptLibrary: defineTable({
+    userId: v.id("users"),
+    title: v.string(),
+    prompt: v.string(),
+    category: v.string(),         // "analysis", "framework", "general", "custom"
+    isDefault: v.optional(v.boolean()),  // System prompts vs user-created
+  })
+    .index("by_userId", ["userId"]),
+
   chatMessages: defineTable({
     engagementId: v.id("engagements"),
     role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),

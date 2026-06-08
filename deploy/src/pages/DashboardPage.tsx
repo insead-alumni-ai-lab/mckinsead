@@ -616,6 +616,78 @@ export function DashboardPage() {
         </div>
       )}
 
+      {/* Stage Distribution & Activity */}
+      {engagements.filter((e) => !e.archived).length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Stage Distribution */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Stage Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {(["scoping", "frameworks", "hypothesis", "analysis", "synthesis", "communication", "export"] as const).map((stage) => {
+                  const count = engagements.filter((e) => !e.archived && e.stage === stage).length;
+                  const total = engagements.filter((e) => !e.archived).length;
+                  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                  const colors: Record<string, string> = {
+                    scoping: "bg-blue-500", frameworks: "bg-indigo-500", hypothesis: "bg-violet-500",
+                    analysis: "bg-purple-500", synthesis: "bg-fuchsia-500", communication: "bg-pink-500", export: "bg-green-500",
+                  };
+                  return (
+                    <div key={stage} className="flex items-center gap-3">
+                      <span className="text-xs w-24 capitalize text-muted-foreground">{stage}</span>
+                      <div className="flex-1 bg-muted rounded-full h-2.5">
+                        <div className={`${colors[stage]} rounded-full h-2.5 transition-all`} style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-xs font-medium w-6 text-right">{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Activity Feed */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Recent Activity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 max-h-[200px] overflow-y-auto">
+                {engagements
+                  .filter((e) => !e.archived)
+                  .sort((a, b) => b._creationTime - a._creationTime)
+                  .slice(0, 5)
+                  .map((eng) => (
+                    <div
+                      key={eng._id}
+                      className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded-lg p-1.5 -mx-1.5 transition-colors"
+                      onClick={() => navigate(`/engagement/${eng._id}`)}
+                    >
+                      <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Building2 className="size-3.5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{eng.company}</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {eng.stage} · {eng.progress}% · {new Date(eng._creationTime).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </div>
+                      </div>
+                      <div className="w-12 bg-muted rounded-full h-1.5 shrink-0">
+                        <div className="bg-primary rounded-full h-1.5 transition-all" style={{ width: `${eng.progress}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                {engagements.filter((e) => !e.archived).length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-4">No recent activity</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Engagements */}
       <div>
         <div className="flex items-center justify-between mb-4">

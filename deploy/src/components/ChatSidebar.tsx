@@ -3,6 +3,7 @@ import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import {
+  BookOpen,
   Globe,
   Loader2,
   MessageSquare,
@@ -28,6 +29,8 @@ export function ChatSidebar({ engagementId, stage, isOpen, onClose }: ChatSideba
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [researchMode, setResearchMode] = useState(false);
+  const [showPromptLib, setShowPromptLib] = useState(false);
+  const promptLibrary = useQuery(api.promptLibrary.list) ?? [];
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -173,7 +176,41 @@ export function ChatSidebar({ engagementId, stage, isOpen, onClose }: ChatSideba
             <Globe className="size-3" />
             Research Mode {researchMode ? "ON" : ""}
           </button>
+          <button
+            onClick={() => setShowPromptLib(!showPromptLib)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors ${
+              showPromptLib
+                ? "bg-violet-500/10 text-violet-600 border border-violet-300 dark:border-violet-800"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            }`}
+            title="Prompt Library: Use pre-built prompts"
+          >
+            <BookOpen className="size-3" />
+            Prompts
+          </button>
         </div>
+        {/* Prompt Library Dropdown */}
+        {showPromptLib && (
+          <div className="mb-2 max-h-[140px] overflow-y-auto border rounded-lg bg-muted/30 p-1.5 space-y-0.5">
+            {promptLibrary.map((p, i) => (
+              <button
+                key={p._id ?? i}
+                onClick={() => {
+                  setInput(p.prompt);
+                  setShowPromptLib(false);
+                  textareaRef.current?.focus();
+                }}
+                className="w-full text-left text-[11px] px-2.5 py-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              >
+                <span className="font-medium text-foreground">{p.title}</span>
+                <span className="ml-1.5 text-[9px] opacity-60">({p.category})</span>
+              </button>
+            ))}
+            {promptLibrary.length === 0 && (
+              <p className="text-[10px] text-muted-foreground text-center py-2">No prompts available</p>
+            )}
+          </div>
+        )}
         <div className="flex gap-2">
           <Textarea
             ref={textareaRef}

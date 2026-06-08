@@ -1455,7 +1455,8 @@ function HypothesisPanel({ engagement, engagementId, frameworkDataList }: {
   engagementId: Id<"engagements">;
   frameworkDataList: Array<{ framework: string; data: string; status: string }>;
 }) {
-  type Hypothesis = { id: string; text: string; status: string; children: Array<{ id: string; text: string; status: string }> };
+  type HypothesisChild = { id: string; text: string; status: string; evidence?: string; priority?: string };
+  type Hypothesis = { id: string; text: string; status: string; evidence?: string; priority?: string; children: HypothesisChild[] };
   const saved: Hypothesis[] | null = engagement.hypothesisData ? (() => { try { return JSON.parse(engagement.hypothesisData!); } catch { return null; } })() : null;
 
   const [hypotheses, setHypotheses] = useState<Hypothesis[]>(
@@ -1650,6 +1651,36 @@ function HypothesisPanel({ engagement, engagementId, frameworkDataList }: {
                         className="text-sm min-h-[60px] resize-none bg-transparent border-dashed"
                         rows={2}
                       />
+                      {/* Priority & Evidence */}
+                      <div className="flex items-center gap-2 mt-2">
+                        <Select
+                          value={h.priority ?? "medium"}
+                          onValueChange={(val) => {
+                            const next = [...hypotheses];
+                            next[hi] = { ...next[hi], priority: val };
+                            setHypotheses(next);
+                          }}
+                        >
+                          <SelectTrigger className="h-5 w-20 text-[10px]">
+                            <SelectValue placeholder="Priority" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="high">🔴 High</SelectItem>
+                            <SelectItem value="medium">🟡 Medium</SelectItem>
+                            <SelectItem value="low">🟢 Low</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          value={h.evidence ?? ""}
+                          onChange={(e) => {
+                            const next = [...hypotheses];
+                            next[hi] = { ...next[hi], evidence: e.target.value };
+                            setHypotheses(next);
+                          }}
+                          className="h-5 text-[10px] bg-transparent border-dashed flex-1"
+                          placeholder="Evidence / notes..."
+                        />
+                      </div>
                       {/* Children */}
                       {h.children.length > 0 && (
                         <div className="mt-3 space-y-2">
