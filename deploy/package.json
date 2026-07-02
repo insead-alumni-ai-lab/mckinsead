@@ -13,6 +13,8 @@
     "typecheck": "tsc --noEmit",
     "sync": "npx convex dev --once",
     "sync:build": "npx convex dev --once && npm run build",
+    "deploy": "npx vercel --prod",
+    "deploy:preview": "npx vercel",
     "logs": "bunx convex logs",
     "logs:fetch": "bun run --bun scripts/logs.ts",
     "test": "bun run --bun scripts/test.ts",
