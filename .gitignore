@@ -35,6 +35,5 @@ npm-debug.log*
 # Test coverage
 coverage/
 
-# Generated
-packages/schemas/dist/
-packages/*/dist/
+# Convex generated files
+convex/_generated/
