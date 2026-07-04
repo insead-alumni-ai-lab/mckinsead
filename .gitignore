@@ -37,3 +37,5 @@ coverage/
 
 # Convex generated files
 convex/_generated/
+.vercel
+.env*
