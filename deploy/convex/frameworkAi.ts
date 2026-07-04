@@ -316,3 +316,105 @@ export const generateAll = action({
     return { success: allSuccess, results };
   },
 });
+
+/**
+ * Infer SCQA (Situation / Complication / Question / Answer) from a
+ * plain-text problem description using the LLM.
+ */
+export const inferSCQA = action({
+  args: {
+    engagementId: v.id("engagements"),
+    problemDescription: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    situation: v.optional(v.string()),
+    complication: v.optional(v.string()),
+    question: v.optional(v.string()),
+    answer: v.optional(v.string()),
+    error: v.optional(v.string()),
+  }),
+  handler: async (ctx, { engagementId, problemDescription }) => {
+    // 1. Load engagement to get context
+    const engagement = await ctx.runQuery(api.engagements.get, { id: engagementId });
+    if (!engagement) return { success: false, error: "Engagement not found" };
+
+    const sanitizedProblem = sanitizeForLLM(problemDescription);
+
+    const prompt = `You are a senior McKinsey-style strategy consultant. A client has described a problem or idea in plain words below.
+
+Your task is to apply the **SCQA framework** (Situation → Complication → Question → Answer) to structure this problem as a McKinsey consultant would.
+
+**Company:** ${sanitizeForLLM(engagement.company)}
+**Industry:** ${sanitizeForLLM(engagement.industry)}
+${engagement.question ? `**Initial Question:** ${sanitizeForLLM(engagement.question)}` : ""}
+
+**Client's Problem Description:**
+"""
+${sanitizedProblem}
+"""
+
+Analyze this description and infer the four SCQA components:
+
+1. **Situation** — The stable, desirable starting state. What is the current context? What is working well? What is the backdrop?
+2. **Complication** — What changed? What is the disruption, problem, friction, or opportunity that destabilizes the Situation? Why can't we stay here?
+3. **Question** — What is the specific strategic question we must answer? Frame it as a single, clear, actionable question.
+4. **Answer (Hypothesis)** — What is our initial hypothesis / answer to the question? This should be a concise strategic direction we can test.
+
+Be specific, grounded in the client's description, and write in clear business language.
+
+Respond ONLY with valid JSON in this exact format (no markdown, no explanation):
+{
+  "situation": "…",
+  "complication": "…",
+  "question": "…",
+  "answer": "…"
+}`;
+
+    try {
+      const aiConfig = await resolveAiConfig(ctx, engagement.userId);
+      const rawResponse = await callLLMPrompt(aiConfig, prompt);
+      const parsed = parseJsonResponse(rawResponse) as Record<string, string>;
+
+      const situation = parsed.situation ?? "";
+      const complication = parsed.complication ?? "";
+      const question = parsed.question ?? "";
+      const answer = parsed.answer ?? "";
+
+      // Persist alongside engagement context
+      const scopingData = JSON.stringify({
+        problemDescription,
+        situation,
+        complication,
+        question,
+        answer,
+      });
+
+      await ctx.runMutation(api.engagements.saveStageData, {
+        id: engagementId,
+        scopingData,
+      });
+
+      // ── Gamification (#1): Award XP for first SCQA inference ──
+      await ctx.runMutation(internal.gamification.internalAwardXP, {
+        userId: engagement.userId,
+        amount: 10,
+        reason: "Inferred SCQA from problem description",
+      });
+
+      // ── Audit trail (#2) ──
+      await ctx.runMutation(internal.audit.logAction, {
+        userId: engagement.userId,
+        engagementId,
+        action: "scqa.inferred",
+        details: JSON.stringify({ problemLength: problemDescription.length }),
+      });
+
+      return { success: true, situation, complication, question, answer };
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      return { success: false, error: errorMessage };
+    }
+  },
+});
+

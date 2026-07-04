@@ -95,6 +95,16 @@ The `screenshot` command also starts the Vite preview server automatically.
 grep VITE_CONVEX_URL .env.local
 ```
 
+**Auth shows `isAuthenticated: false` despite tokens in localStorage**: The `JWKS` env var is likely missing. See [Generating JWKS](#generating-jwks-required-for-jwt-validation) above.
+
+**Google login redirects back to login page**: Ensure your Google OAuth redirect URI matches exactly:
+```
+https://<deployment>.convex.site/api/auth/callback/google
+```
+Do NOT use your custom domain — the callback must go to the Convex site directly.
+
+**Auth callback 404 or CORS errors**: Check that `vercel.json` does NOT contain a rewrite for `/api/auth/*`. The auth flow goes directly to the Convex site.
+
 ## Scripts
 
 | Command                            | Description                                    |
@@ -296,10 +306,14 @@ Your project comes **pre-configured** with all required environment variables. Y
 **Local file** (`.env.local`) — already exists, don't modify:
 - `CONVEX_DEPLOY_KEY` — Authenticates CLI with your deployment
 - `VITE_CONVEX_URL` — Frontend connects to your Convex backend
+- `VITE_CONVEX_SITE_URL` — Convex site URL (for auth callbacks)
 
 **Convex deployment** — already configured:
-- `AUTH_PRIVATE_KEY` — For Convex Auth JWT signing
-- `SITE_URL` — Your app's URL for auth redirects
+- `AUTH_PRIVATE_KEY` / `AUTH_PUBLIC_KEY` — RSA key pair for Convex Auth
+- `JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY` — RSA key pair for JWT signing/verification
+- `JWKS` — JSON Web Key Set derived from the public key (required for backend JWT validation)
+- `SITE_URL` — Your app's URL for auth redirects (e.g., `https://www.yourdomain.com`)
+- `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` — Google OAuth credentials
 - `VIKTOR_SPACES_*` — Email sending configuration
 
 ### Adding New Variables
@@ -318,7 +332,7 @@ Then use in your Convex functions:
 const apiKey = process.env.OPENAI_API_KEY;
 ```
 
-**Note**: Runtime vars must be set via CLI — they are NOT read from `.env.local`.
+**Note**: Runtime vars must be set on the Convex deployment via CLI — they are NOT read from `.env.local`.
 
 ### CLI Commands
 
@@ -352,11 +366,72 @@ When your code needs a new API key:
 
 No redeploy needed — env var changes take effect immediately.
 
+### Vercel Deployment
+
+When deploying to Vercel with a custom domain:
+
+1. Set `SITE_URL` on Convex to your Vercel domain:
+   ```bash
+   bunx convex env set SITE_URL "https://www.yourdomain.com"
+   ```
+
+2. Configure your Vercel project with the custom domain
+
+3. Do NOT add rewrites for `/api/auth/*` — the auth flow goes directly through the Convex site
+
 ## Auth Flows
 
-This starter includes complete email/password authentication with OTP verification.
+This starter includes email/password authentication and Google OAuth via Convex Auth.
 
-### Sign Up Flow
+### Required Environment Variables
+
+All of these must be set on the Convex deployment for auth to work:
+
+| Variable | Purpose | How to Generate |
+|----------|---------|-----------------|
+| `AUTH_PRIVATE_KEY` | Auth library signing key | `openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048` |
+| `AUTH_PUBLIC_KEY` | Auth library verification key | `openssl pkey -in key.pem -pubout` |
+| `JWT_PRIVATE_KEY` | JWT token signing key | Can reuse the same RSA key pair as AUTH |
+| `JWT_PUBLIC_KEY` | JWT token verification key | `openssl pkey -in key.pem -pubout` |
+| `JWKS` | JSON Web Key Set (required!) | Generate from public key (see below) |
+| `SITE_URL` | Your app's URL for redirects | e.g., `https://www.yourdomain.com` |
+| `AUTH_GOOGLE_ID` | Google OAuth client ID | From Google Cloud Console |
+| `AUTH_GOOGLE_SECRET` | Google OAuth client secret | From Google Cloud Console |
+
+### Generating JWKS (Required for JWT Validation)
+
+Without the `JWKS` environment variable, the backend cannot verify JWT tokens. This causes `useConvexAuth()` to return `isAuthenticated: false` even when tokens exist in localStorage.
+
+```bash
+# Generate JWKS from your public key and set it on Convex
+node -e "
+const crypto = require('crypto');
+const fs = require('fs');
+const pubKey = fs.readFileSync('/path/to/public_key.pem', 'utf8');
+const jwk = crypto.createPublicKey(pubKey).export({ format: 'jwk' });
+jwk.kid = 'auth-key';
+jwk.alg = 'RS256';
+jwk.use = 'sig';
+console.log(JSON.stringify({ keys: [jwk] }));
+" | bunx convex env set JWKS
+```
+
+### Google OAuth Setup
+
+1. Create OAuth 2.0 credentials in [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+2. Set the **Authorized redirect URI** to your Convex site URL:
+   ```
+   https://<your-deployment>.convex.site/api/auth/callback/google
+   ```
+3. Set the env vars on Convex:
+   ```bash
+   bunx convex env set AUTH_GOOGLE_ID "your-client-id"
+   bunx convex env set AUTH_GOOGLE_SECRET "your-client-secret"
+   ```
+
+**Note**: Google OAuth redirects go directly to the Convex site (not through Vercel). The Convex callback then redirects to `SITE_URL` with a verification code. Do NOT add a Vercel rewrite for `/api/auth/*` — it breaks the cookie-based auth flow.
+
+### Sign Up Flow (Email/Password)
 
 ```
 1. User enters name + email + password
