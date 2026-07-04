@@ -1,5 +1,4 @@
 import { useConvexAuth } from "convex/react";
-import { useAuthToken } from "@convex-dev/auth/react";
 import {
   ArrowRight,
   Brain,
@@ -33,16 +32,9 @@ const FRAMEWORKS = [
 ];
 
 export function LandingPage() {
-  const { isAuthenticated, isLoading } = useConvexAuth();
-  const authToken = useAuthToken();
-  const jwtKey = Object.keys(localStorage).find(k => k.includes('convexAuthJWT'));
-  const jwtVal = jwtKey ? localStorage.getItem(jwtKey) : null;
+  const { isAuthenticated } = useConvexAuth();
 
   return (
-    <>
-    <div style={{position:'fixed',top:0,left:0,zIndex:9999,background:'#000',color:'#0f0',padding:8,fontSize:12,fontFamily:'monospace'}}>
-      convex: {JSON.stringify({isAuthenticated, isLoading})} | token: {JSON.stringify({hasToken: !!jwtVal, tokenLen: jwtVal?.length, hookToken: !!authToken, hookLen: authToken?.length})}
-    </div>
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Hero */}
       <section className="relative flex-1 flex flex-col items-center justify-center px-4 py-20 md:py-28">
@@ -174,6 +166,5 @@ export function LandingPage() {
         </div>
       </footer>
     </div>
-    </>
   );
 }
