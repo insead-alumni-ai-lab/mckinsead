@@ -373,6 +373,8 @@ When deploying to Vercel with a custom domain:
 1. Set `SITE_URL` on Convex to your Vercel domain:
    ```bash
    bunx convex env set SITE_URL "https://www.yourdomain.com"
+   # in local set : npx convex env set SITE_URL https://localhost:5173
+   # when deploying set: npx convex env set SITE_URL https://www.mckinsead.com
    ```
 
 2. Configure your Vercel project with the custom domain
