@@ -19,15 +19,13 @@ export const chat = action({
         role: v.union(
           v.literal("system"),
           v.literal("user"),
-          v.literal("assistant")
+          v.literal("assistant"),
         ),
         content: v.string(),
-      })
+      }),
     ),
     systemPrompt: v.optional(v.string()),
-    provider: v.optional(
-      v.union(v.literal("anthropic"), v.literal("openai"))
-    ),
+    provider: v.optional(v.union(v.literal("anthropic"), v.literal("openai"))),
     model: v.optional(v.string()),
     temperature: v.optional(v.number()),
     maxTokens: v.optional(v.number()),
@@ -56,7 +54,7 @@ export const providers = action({
       configured: v.boolean(),
       model: v.string(),
       baseUrl: v.string(),
-    })
+    }),
   ),
   handler: async () => {
     return listProviders();

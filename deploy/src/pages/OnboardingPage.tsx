@@ -1,20 +1,20 @@
 import { useAction, useMutation, useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { useState } from "react";
 import {
+  ArrowRight,
   Check,
-  Crown,
-  Key,
   Cloud,
+  Crown,
+  Headphones,
+  Key,
   Loader2,
+  ShieldCheck,
   Sparkles,
   Users,
-  ArrowRight,
   Zap,
-  ShieldCheck,
-  Headphones,
 } from "lucide-react";
+import { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,8 +24,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { api } from "../../convex/_generated/api";
 
 const PLANS = [
   {
@@ -155,13 +155,14 @@ export function OnboardingPage() {
             Choose how you want to use AI
           </h1>
           <p className="text-muted-foreground text-lg">
-            Bring your own API key for free, or let us handle the infrastructure with a Cloud plan.
+            Bring your own API key for free, or let us handle the infrastructure
+            with a Cloud plan.
           </p>
         </div>
 
         {/* Plan cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl w-full">
-          {PLANS.map((plan) => (
+          {PLANS.map(plan => (
             <Card
               key={plan.id}
               className={cn(
@@ -179,21 +180,30 @@ export function OnboardingPage() {
                 </div>
               )}
               <CardHeader className="pb-4">
-                <div className={cn("inline-flex items-center gap-2 mb-2", plan.color)}>
+                <div
+                  className={cn(
+                    "inline-flex items-center gap-2 mb-2",
+                    plan.color,
+                  )}
+                >
                   <plan.icon className="size-5" />
                   <CardTitle className="text-lg">{plan.name}</CardTitle>
                 </div>
                 <CardDescription>{plan.subtitle}</CardDescription>
                 <div className="pt-2">
                   <span className="text-3xl font-bold">{plan.price}</span>
-                  <span className="text-muted-foreground text-sm">{plan.period}</span>
+                  <span className="text-muted-foreground text-sm">
+                    {plan.period}
+                  </span>
                 </div>
               </CardHeader>
               <CardContent className="flex-1">
                 <ul className="space-y-3">
-                  {plan.features.map((f) => (
+                  {plan.features.map(f => (
                     <li key={f} className="flex items-start gap-2.5 text-sm">
-                      <Check className={cn("size-4 mt-0.5 shrink-0", plan.color)} />
+                      <Check
+                        className={cn("size-4 mt-0.5 shrink-0", plan.color)}
+                      />
                       <span>{f}</span>
                     </li>
                   ))}
@@ -210,7 +220,9 @@ export function OnboardingPage() {
                   {loading === plan.id ? (
                     <>
                       <Loader2 className="size-4 mr-2 animate-spin" />
-                      {plan.id === "free" ? "Setting up…" : "Redirecting to Stripe…"}
+                      {plan.id === "free"
+                        ? "Setting up…"
+                        : "Redirecting to Stripe…"}
                     </>
                   ) : (
                     <>

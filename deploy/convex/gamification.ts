@@ -2,30 +2,79 @@
  * Gamification & Learning Mode (#16)
  * XP tracking, badges, and skill progression.
  */
-import { v } from "convex/values";
-import { mutation, query, internalMutation } from "./_generated/server";
+
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { v } from "convex/values";
+import { internalMutation, mutation, query } from "./_generated/server";
 
 const BADGES = [
-  { id: "first_engagement", name: "First Steps", description: "Create your first engagement", icon: "🎯", xpRequired: 0 },
-  { id: "framework_master", name: "Framework Master", description: "Generate all 8 frameworks in one engagement", icon: "🏆", xpRequired: 100 },
-  { id: "hypothesis_builder", name: "Hypothesis Builder", description: "Create 5+ hypotheses in a single tree", icon: "🌳", xpRequired: 200 },
-  { id: "speed_analyst", name: "Speed Analyst", description: "Complete scoping in under 5 minutes", icon: "⚡", xpRequired: 150 },
-  { id: "mece_perfectionist", name: "MECE Perfectionist", description: "Achieve 100% MECE coverage", icon: "✨", xpRequired: 300 },
-  { id: "deep_diver", name: "Deep Diver", description: "Use AI chat 20+ times in one engagement", icon: "🤿", xpRequired: 250 },
-  { id: "multi_engagement", name: "Portfolio Strategist", description: "Create 5+ engagements", icon: "📊", xpRequired: 500 },
-  { id: "version_tracker", name: "Version Tracker", description: "Save 3+ version snapshots", icon: "📸", xpRequired: 180 },
+  {
+    id: "first_engagement",
+    name: "First Steps",
+    description: "Create your first engagement",
+    icon: "🎯",
+    xpRequired: 0,
+  },
+  {
+    id: "framework_master",
+    name: "Framework Master",
+    description: "Generate all 8 frameworks in one engagement",
+    icon: "🏆",
+    xpRequired: 100,
+  },
+  {
+    id: "hypothesis_builder",
+    name: "Hypothesis Builder",
+    description: "Create 5+ hypotheses in a single tree",
+    icon: "🌳",
+    xpRequired: 200,
+  },
+  {
+    id: "speed_analyst",
+    name: "Speed Analyst",
+    description: "Complete scoping in under 5 minutes",
+    icon: "⚡",
+    xpRequired: 150,
+  },
+  {
+    id: "mece_perfectionist",
+    name: "MECE Perfectionist",
+    description: "Achieve 100% MECE coverage",
+    icon: "✨",
+    xpRequired: 300,
+  },
+  {
+    id: "deep_diver",
+    name: "Deep Diver",
+    description: "Use AI chat 20+ times in one engagement",
+    icon: "🤿",
+    xpRequired: 250,
+  },
+  {
+    id: "multi_engagement",
+    name: "Portfolio Strategist",
+    description: "Create 5+ engagements",
+    icon: "📊",
+    xpRequired: 500,
+  },
+  {
+    id: "version_tracker",
+    name: "Version Tracker",
+    description: "Save 3+ version snapshots",
+    icon: "📸",
+    xpRequired: 180,
+  },
 ];
 
 /** Get user's gamification profile. */
 export const getProfile = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async ctx => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return null;
     const profile = await ctx.db
       .query("gamification")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .withIndex("by_userId", q => q.eq("userId", userId))
       .first();
 
     if (!profile) {
@@ -38,7 +87,9 @@ export const getProfile = query({
       };
     }
 
-    const earnedBadges: string[] = profile.badges ? JSON.parse(profile.badges) : [];
+    const earnedBadges: string[] = profile.badges
+      ? JSON.parse(profile.badges)
+      : [];
     return {
       xp: profile.xp,
       level: Math.floor(profile.xp / 100) + 1,
@@ -58,7 +109,7 @@ export const awardXP = mutation({
 
     const existing = await ctx.db
       .query("gamification")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .withIndex("by_userId", q => q.eq("userId", userId))
       .first();
 
     if (existing) {
@@ -89,11 +140,13 @@ export const awardBadge = mutation({
 
     const existing = await ctx.db
       .query("gamification")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .withIndex("by_userId", q => q.eq("userId", userId))
       .first();
 
     if (existing) {
-      const badges: string[] = existing.badges ? JSON.parse(existing.badges) : [];
+      const badges: string[] = existing.badges
+        ? JSON.parse(existing.badges)
+        : [];
       if (!badges.includes(badgeId)) {
         badges.push(badgeId);
         await ctx.db.patch(existing._id, { badges: JSON.stringify(badges) });
@@ -119,7 +172,7 @@ export const internalAwardXP = internalMutation({
   handler: async (ctx, { userId, amount, reason }) => {
     const existing = await ctx.db
       .query("gamification")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .withIndex("by_userId", q => q.eq("userId", userId))
       .first();
 
     if (existing) {
@@ -147,11 +200,13 @@ export const internalAwardBadge = internalMutation({
   handler: async (ctx, { userId, badgeId }) => {
     const existing = await ctx.db
       .query("gamification")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .withIndex("by_userId", q => q.eq("userId", userId))
       .first();
 
     if (existing) {
-      const badges: string[] = existing.badges ? JSON.parse(existing.badges) : [];
+      const badges: string[] = existing.badges
+        ? JSON.parse(existing.badges)
+        : [];
       if (!badges.includes(badgeId)) {
         badges.push(badgeId);
         await ctx.db.patch(existing._id, { badges: JSON.stringify(badges) });

@@ -1,0 +1,16 @@
+{
+  "opencode.project_review": {
+    "last_action": "none",
+    "last_checked_at": "2026-07-04T20:20:34.906997Z",
+    "last_input_digest": "sha256:empty",
+    "last_success_at": "2026-07-04T20:20:34.906997Z",
+    "output_file": "/home/yawo/code/mckinsead/.memsearch/PROJECT.md"
+  },
+  "opencode.user_profile": {
+    "last_action": "none",
+    "last_checked_at": "2026-07-04T20:20:41.417997Z",
+    "last_input_digest": "sha256:empty",
+    "last_success_at": "2026-07-04T20:20:41.417997Z",
+    "output_file": "/home/yawo/code/mckinsead/.memsearch/USER.md"
+  }
+}

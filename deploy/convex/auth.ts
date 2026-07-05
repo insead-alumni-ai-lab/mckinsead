@@ -49,7 +49,9 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       reset: ViktorSpacesPasswordReset,
     }),
     Google,
-    ...(process.env.VIKTOR_SPACES_IS_PREVIEW === "true" ? [TestCredentials] : []),
+    ...(process.env.VIKTOR_SPACES_IS_PREVIEW === "true"
+      ? [TestCredentials]
+      : []),
   ],
 });
 
@@ -65,7 +67,7 @@ export const currentUser = query({
 /** Internal query: get current user by auth context (for use in actions). */
 export const internalCurrentUser = internalQuery({
   args: {},
-  handler: async (ctx) => {
+  handler: async ctx => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return null;
     return await ctx.db.get(userId);

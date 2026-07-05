@@ -1,7 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { useQuery, useAction, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
+import { useAction, useMutation, useQuery } from "convex/react";
 import {
   BookOpen,
   Globe,
@@ -12,8 +9,11 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { TextareaWithMic } from "@/components/ui/textarea-with-mic";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 
 interface ChatSidebarProps {
   engagementId: Id<"engagements">;
@@ -22,7 +22,13 @@ interface ChatSidebarProps {
   onClose: () => void;
 }
 
-export function ChatSidebar({ engagementId, stage, isOpen, onClose }: ChatSidebarProps) {
+export function ChatSidebar({
+  engagementId,
+  stage,
+  isOpen,
+  onClose,
+}: ChatSidebarProps) {
+  console.log("[ChatSidebar] mounted with audio mic support");
   const messages = useQuery(api.chat.list, { engagementId });
   const sendMessage = useAction(api.chat.sendMessage);
   const clearHistory = useMutation(api.chat.clearHistory);
@@ -109,7 +115,12 @@ export function ChatSidebar({ engagementId, stage, isOpen, onClose }: ChatSideba
           >
             <Trash2 className="size-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="size-7" onClick={onClose}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            onClick={onClose}
+          >
             <X className="size-4" />
           </Button>
         </div>
@@ -122,15 +133,21 @@ export function ChatSidebar({ engagementId, stage, isOpen, onClose }: ChatSideba
             <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
               <MessageSquare className="size-6 text-primary" />
             </div>
-            <h4 className="font-semibold text-sm mb-2">Your AI Strategy Consultant</h4>
+            <h4 className="font-semibold text-sm mb-2">
+              Your AI Strategy Consultant
+            </h4>
             <p className="text-xs text-muted-foreground mb-4">
-              Ask questions about your engagement, get help with frameworks, or let me guide you through the methodology.
+              Ask questions about your engagement, get help with frameworks, or
+              let me guide you through the methodology.
             </p>
             <div className="space-y-2 w-full">
               {getStageStarters(stage).map((starter, i) => (
                 <button
                   key={i}
-                  onClick={() => { setInput(starter); textareaRef.current?.focus(); }}
+                  onClick={() => {
+                    setInput(starter);
+                    textareaRef.current?.focus();
+                  }}
                   className="w-full text-left text-xs px-3 py-2 rounded-lg border bg-muted/50 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                 >
                   {starter}
@@ -140,8 +157,13 @@ export function ChatSidebar({ engagementId, stage, isOpen, onClose }: ChatSideba
           </div>
         )}
 
-        {messages?.map((msg) => (
-          <ChatBubble key={msg._id} role={msg.role} content={msg.content} timestamp={msg.timestamp} />
+        {messages?.map(msg => (
+          <ChatBubble
+            key={msg._id}
+            role={msg.role}
+            content={msg.content}
+            timestamp={msg.timestamp}
+          />
         ))}
 
         {sending && (
@@ -203,25 +225,42 @@ export function ChatSidebar({ engagementId, stage, isOpen, onClose }: ChatSideba
                 className="w-full text-left text-[11px] px-2.5 py-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
               >
                 <span className="font-medium text-foreground">{p.title}</span>
-                <span className="ml-1.5 text-[9px] opacity-60">({p.category})</span>
+                <span className="ml-1.5 text-[9px] opacity-60">
+                  ({p.category})
+                </span>
               </button>
             ))}
             {promptLibrary.length === 0 && (
-              <p className="text-[10px] text-muted-foreground text-center py-2">No prompts available</p>
+              <p className="text-[10px] text-muted-foreground text-center py-2">
+                No prompts available
+              </p>
             )}
           </div>
         )}
         <div className="flex gap-2">
-          <Textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={researchMode ? "Ask for market data, industry stats, competitive intel..." : "Ask about your engagement..."}
-            rows={2}
-            className="resize-none text-sm"
-            disabled={sending}
-          />
+          <div className="flex-1">
+            <TextareaWithMic
+              ref={textareaRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                researchMode
+                  ? "Ask for market data, industry stats, competitive intel..."
+                  : "Ask about your engagement..."
+              }
+              rows={2}
+              className="resize-none text-sm"
+              disabled={sending}
+              captureOptions={{ model: "whisper-base", language: "en" }}
+              onTranscription={text => {
+                setInput(prev => {
+                  const trimmed = prev.trim();
+                  return trimmed ? `${trimmed} ${text}` : text;
+                });
+              }}
+            />
+          </div>
           <Button
             size="icon"
             className="size-10 shrink-0 self-end"
@@ -245,17 +284,28 @@ export function ChatSidebar({ engagementId, stage, isOpen, onClose }: ChatSideba
 
 // ─── Chat Bubble ──────────────────────────────────────────────────────
 
-function ChatBubble({ role, content, timestamp }: { role: string; content: string; timestamp: number }) {
+function ChatBubble({
+  role,
+  content,
+  timestamp,
+}: {
+  role: string;
+  content: string;
+  timestamp: number;
+}) {
   const isUser = role === "user";
-  const time = new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const time = new Date(timestamp).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   return (
-    <div className={`flex items-start gap-2 ${isUser ? "flex-row-reverse" : ""}`}>
+    <div
+      className={`flex items-start gap-2 ${isUser ? "flex-row-reverse" : ""}`}
+    >
       <div
         className={`size-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-          isUser
-            ? "bg-primary text-primary-foreground"
-            : "bg-primary/10"
+          isUser ? "bg-primary text-primary-foreground" : "bg-primary/10"
         }`}
       >
         {isUser ? (
@@ -288,7 +338,13 @@ function ChatBubble({ role, content, timestamp }: { role: string; content: strin
 
 // ─── Simple Markdown Renderer ─────────────────────────────────────────
 
-function MarkdownContent({ content, isUser }: { content: string; isUser: boolean }) {
+function MarkdownContent({
+  content,
+  isUser,
+}: {
+  content: string;
+  isUser: boolean;
+}) {
   // Simple markdown: **bold**, *italic*, bullet points, numbered lists
   const lines = content.split("\n");
 
@@ -309,7 +365,9 @@ function MarkdownContent({ content, isUser }: { content: string; isUser: boolean
         if (numMatch) {
           return (
             <div key={i} className="flex items-start gap-1.5 ml-1 my-0.5">
-              <span className="text-[10px] font-semibold w-3 shrink-0">{numMatch[1]}.</span>
+              <span className="text-[10px] font-semibold w-3 shrink-0">
+                {numMatch[1]}.
+              </span>
               <span>{renderInline(line.replace(/^\d+\.\s/, ""), isUser)}</span>
             </div>
           );
@@ -339,7 +397,10 @@ function renderInline(text: string, isUser: boolean): React.ReactNode {
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return (
-        <strong key={i} className={isUser ? "font-bold" : "font-semibold text-foreground"}>
+        <strong
+          key={i}
+          className={isUser ? "font-bold" : "font-semibold text-foreground"}
+        >
           {part.slice(2, -2)}
         </strong>
       );

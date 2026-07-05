@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "built_at": "2026-07-05T03:50:23.755525667+00:00",
+  "git_head": "dbed886",
+  "git_dirty": true,
+  "nodes": 273,
+  "edges": 146,
+  "files_indexed": 128,
+  "build_time_ms": 3864
+}

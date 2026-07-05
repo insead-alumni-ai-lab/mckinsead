@@ -2,19 +2,20 @@
  * User Preferences — persisted settings (#7).
  * Replaces localStorage for white-label, localization, webhook, and notification preferences.
  */
+
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
 
 /** Get all preferences for the current user. */
 export const getAll = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async ctx => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return {};
     const prefs = await ctx.db
       .query("userPreferences")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .withIndex("by_userId", q => q.eq("userId", userId))
       .collect();
     const result: Record<string, string> = {};
     for (const p of prefs) {
@@ -32,7 +33,7 @@ export const get = query({
     if (!userId) return null;
     const pref = await ctx.db
       .query("userPreferences")
-      .withIndex("by_userId_key", (q) => q.eq("userId", userId).eq("key", key))
+      .withIndex("by_userId_key", q => q.eq("userId", userId).eq("key", key))
       .first();
     return pref?.value ?? null;
   },
@@ -46,7 +47,7 @@ export const set = mutation({
     if (!userId) throw new Error("Not authenticated");
     const existing = await ctx.db
       .query("userPreferences")
-      .withIndex("by_userId_key", (q) => q.eq("userId", userId).eq("key", key))
+      .withIndex("by_userId_key", q => q.eq("userId", userId).eq("key", key))
       .first();
     if (existing) {
       await ctx.db.patch(existing._id, { value });
@@ -65,7 +66,7 @@ export const setMany = mutation({
     for (const { key, value } of prefs) {
       const existing = await ctx.db
         .query("userPreferences")
-        .withIndex("by_userId_key", (q) => q.eq("userId", userId).eq("key", key))
+        .withIndex("by_userId_key", q => q.eq("userId", userId).eq("key", key))
         .first();
       if (existing) {
         await ctx.db.patch(existing._id, { value });
@@ -84,7 +85,7 @@ export const remove = mutation({
     if (!userId) throw new Error("Not authenticated");
     const existing = await ctx.db
       .query("userPreferences")
-      .withIndex("by_userId_key", (q) => q.eq("userId", userId).eq("key", key))
+      .withIndex("by_userId_key", q => q.eq("userId", userId).eq("key", key))
       .first();
     if (existing) {
       await ctx.db.delete(existing._id);

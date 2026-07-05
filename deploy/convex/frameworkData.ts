@@ -5,8 +5,8 @@
  * stored as JSON strings in the frameworkData table.
  */
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
 
 // ─── Queries ──────────────────────────────────────────────────
 
@@ -22,7 +22,7 @@ export const listByEngagement = query({
 
     return await ctx.db
       .query("frameworkData")
-      .withIndex("by_engagementId", (q) => q.eq("engagementId", engagementId))
+      .withIndex("by_engagementId", q => q.eq("engagementId", engagementId))
       .collect();
   },
 });
@@ -41,8 +41,8 @@ export const getByFramework = query({
 
     return await ctx.db
       .query("frameworkData")
-      .withIndex("by_engagementId_framework", (q) =>
-        q.eq("engagementId", engagementId).eq("framework", framework)
+      .withIndex("by_engagementId_framework", q =>
+        q.eq("engagementId", engagementId).eq("framework", framework),
       )
       .unique();
   },
@@ -73,8 +73,8 @@ export const save = mutation({
     // Check if entry exists
     const existing = await ctx.db
       .query("frameworkData")
-      .withIndex("by_engagementId_framework", (q) =>
-        q.eq("engagementId", args.engagementId).eq("framework", args.framework)
+      .withIndex("by_engagementId_framework", q =>
+        q.eq("engagementId", args.engagementId).eq("framework", args.framework),
       )
       .unique();
 
@@ -118,8 +118,8 @@ export const setStatus = mutation({
 
     const existing = await ctx.db
       .query("frameworkData")
-      .withIndex("by_engagementId_framework", (q) =>
-        q.eq("engagementId", args.engagementId).eq("framework", args.framework)
+      .withIndex("by_engagementId_framework", q =>
+        q.eq("engagementId", args.engagementId).eq("framework", args.framework),
       )
       .unique();
 
@@ -150,15 +150,21 @@ export const initializeAll = mutation({
     if (!eng || eng.userId !== userId) throw new Error("Not found");
 
     const frameworks = [
-      "swot", "pestel", "porter5", "bcg",
-      "ansoff", "sipoc", "value_chain", "root_cause",
+      "swot",
+      "pestel",
+      "porter5",
+      "bcg",
+      "ansoff",
+      "sipoc",
+      "value_chain",
+      "root_cause",
     ];
 
     for (const fw of frameworks) {
       const existing = await ctx.db
         .query("frameworkData")
-        .withIndex("by_engagementId_framework", (q) =>
-          q.eq("engagementId", engagementId).eq("framework", fw)
+        .withIndex("by_engagementId_framework", q =>
+          q.eq("engagementId", engagementId).eq("framework", fw),
         )
         .unique();
 

@@ -1,8 +1,4 @@
-import { useState, useEffect } from "react";
-import { FaIcon, FA } from "@/components/FaIcon";
-import { useNavigate } from "react-router-dom";
-import { useMutation, useQuery, useAction } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { useAction, useMutation, useQuery } from "convex/react";
 import {
   AlertTriangle,
   Archive,
@@ -21,13 +17,12 @@ import {
   Wrench,
   Zap,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { FA, FaIcon } from "@/components/FaIcon";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -39,14 +34,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { TextareaWithMic } from "@/components/ui/textarea-with-mic";
+import { api } from "../../convex/_generated/api";
 
 const TEMPLATES = [
   {
     title: "Market Entry",
     desc: "Should we enter a new market? Full PESTEL + Porter analysis.",
-    question: "Should we enter the target market and what would be the optimal entry strategy?",
+    question:
+      "Should we enter the target market and what would be the optimal entry strategy?",
     frameworks: ["PESTEL", "Porter 5", "SWOT", "Ansoff"],
     icon: Globe,
     color: "text-blue-500",
@@ -54,7 +50,8 @@ const TEMPLATES = [
   {
     title: "Portfolio Optimization",
     desc: "Which business units to invest, harvest, or divest?",
-    question: "How should we reallocate resources across our business portfolio to maximize returns?",
+    question:
+      "How should we reallocate resources across our business portfolio to maximize returns?",
     frameworks: ["BCG", "Value Chain", "SWOT"],
     icon: BarChart3,
     color: "text-violet-500",
@@ -62,7 +59,8 @@ const TEMPLATES = [
   {
     title: "Operational Turnaround",
     desc: "Root cause analysis of margin erosion + hypothesis testing.",
-    question: "What are the root causes of declining margins and how can we reverse the trend?",
+    question:
+      "What are the root causes of declining margins and how can we reverse the trend?",
     frameworks: ["Root Cause", "SIPOC", "Value Chain", "SWOT"],
     icon: Wrench,
     color: "text-orange-500",
@@ -70,7 +68,8 @@ const TEMPLATES = [
   {
     title: "Digital Transformation",
     desc: "Assess digital readiness and plan transformation roadmap.",
-    question: "How should we transform our operations and customer experience through digital technologies?",
+    question:
+      "How should we transform our operations and customer experience through digital technologies?",
     frameworks: ["SWOT", "Value Chain", "PESTEL"],
     icon: Zap,
     color: "text-cyan-500",
@@ -78,7 +77,8 @@ const TEMPLATES = [
   {
     title: "M&A Due Diligence",
     desc: "Strategic fit, synergies, and integration risk assessment.",
-    question: "Should we acquire the target company and what synergies can we capture?",
+    question:
+      "Should we acquire the target company and what synergies can we capture?",
     frameworks: ["SWOT", "Porter 5", "BCG", "Value Chain"],
     icon: Building2,
     color: "text-emerald-500",
@@ -86,7 +86,8 @@ const TEMPLATES = [
   {
     title: "Competitive Response",
     desc: "Analyze competitive threats and formulate counter-strategies.",
-    question: "How should we respond to competitive threats to defend and grow our market position?",
+    question:
+      "How should we respond to competitive threats to defend and grow our market position?",
     frameworks: ["Porter 5", "SWOT", "PESTEL", "Ansoff"],
     icon: AlertTriangle,
     color: "text-amber-500",
@@ -122,7 +123,7 @@ export function DashboardPage() {
   // Free-tier (BYOK) users need at least one API key configured
   const isFree = !subscription || subscription.plan === "free";
   const isByok = !subscription || subscription.mode === "byok";
-  const hasKeys = userAiConfigs.some((c) => c.apiKeySet);
+  const hasKeys = userAiConfigs.some(c => c.apiKeySet);
   const needsKeys = isFree && isByok && !hasKeys;
 
   // ─── Local state ─────────────────────────────────────────
@@ -255,7 +256,9 @@ export function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Strategy Cockpit</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+            Strategy Cockpit
+          </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Manage your strategy engagements
           </p>
@@ -263,13 +266,15 @@ export function DashboardPage() {
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {/* Session counter badge */}
           {subscription && (
-            <div className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full border ${
-              isAtLimit
-                ? "border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400"
-                : sessionsRemaining <= 2
-                  ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
-                  : "border-border bg-muted/50 text-muted-foreground"
-            }`}>
+            <div
+              className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full border ${
+                isAtLimit
+                  ? "border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400"
+                  : sessionsRemaining <= 2
+                    ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+                    : "border-border bg-muted/50 text-muted-foreground"
+              }`}
+            >
               <Zap className="size-3.5" />
               <span className="font-medium">{sessionsRemaining}</span>
               <span className="text-xs">/ {sessionsLimit} sessions left</span>
@@ -277,7 +282,15 @@ export function DashboardPage() {
           )}
           <Dialog open={showCreate} onOpenChange={setShowCreate}>
             <DialogTrigger asChild>
-              <Button className="gap-2" disabled={isAtLimit || needsKeys} title={needsKeys ? "Configure your AI keys in Settings first" : undefined}>
+              <Button
+                className="gap-2"
+                disabled={isAtLimit || needsKeys}
+                title={
+                  needsKeys
+                    ? "Configure your AI keys in Settings first"
+                    : undefined
+                }
+              >
                 <Plus className="size-4" /> New Engagement
               </Button>
             </DialogTrigger>
@@ -288,7 +301,8 @@ export function DashboardPage() {
                   Define the company and strategic question to analyze.
                   {sessionsRemaining > 0 && (
                     <span className="block mt-1 text-xs">
-                      This will use 1 of your {sessionsRemaining} remaining session{sessionsRemaining !== 1 ? "s" : ""}.
+                      This will use 1 of your {sessionsRemaining} remaining
+                      session{sessionsRemaining !== 1 ? "s" : ""}.
                     </span>
                   )}
                 </DialogDescription>
@@ -296,30 +310,56 @@ export function DashboardPage() {
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label>Company Name *</Label>
-                  <Input placeholder="e.g., Acme Corp" value={company} onChange={(e) => setCompany(e.target.value)} />
+                  <Input
+                    placeholder="e.g., Acme Corp"
+                    value={company}
+                    onChange={e => setCompany(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Industry *</Label>
-                  <Input placeholder="e.g., Consumer Electronics" value={industry} onChange={(e) => setIndustry(e.target.value)} />
+                  <Input
+                    placeholder="e.g., Consumer Electronics"
+                    value={industry}
+                    onChange={e => setIndustry(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Strategic Question</Label>
-                  <Textarea placeholder="e.g., Should we expand into the European market?" value={question} onChange={(e) => setQuestion(e.target.value)} />
+                  <TextareaWithMic
+                    placeholder="e.g., Should we expand into the European market?"
+                    value={question}
+                    onChange={e => setQuestion(e.target.value)}
+                    onTranscription={t => setQuestion(t)}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Geographies</Label>
-                    <Input placeholder="e.g., US, Europe, APAC" value={geos} onChange={(e) => setGeos(e.target.value)} />
+                    <Input
+                      placeholder="e.g., US, Europe, APAC"
+                      value={geos}
+                      onChange={e => setGeos(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Key Competitors</Label>
-                    <Input placeholder="e.g., CompetitorA, B" value={competitors} onChange={(e) => setCompetitors(e.target.value)} />
+                    <Input
+                      placeholder="e.g., CompetitorA, B"
+                      value={competitors}
+                      onChange={e => setCompetitors(e.target.value)}
+                    />
                   </div>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
-                <Button onClick={handleCreate} disabled={!company.trim() || creating}>
+                <Button variant="outline" onClick={() => setShowCreate(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCreate}
+                  disabled={!company.trim() || creating}
+                >
                   {creating && <Loader2 className="size-4 mr-2 animate-spin" />}
                   Create Engagement
                 </Button>
@@ -341,7 +381,8 @@ export function DashboardPage() {
                 Set up your AI provider keys
               </p>
               <p className="text-sm text-amber-600 dark:text-amber-400">
-                You're on the Free (BYOK) plan — configure at least one AI provider API key in Settings before creating engagements.
+                You're on the Free (BYOK) plan — configure at least one AI
+                provider API key in Settings before creating engagements.
               </p>
             </div>
             <Button
@@ -368,8 +409,12 @@ export function DashboardPage() {
                 Monthly session limit reached
               </p>
               <p className="text-sm text-red-600 dark:text-red-400">
-                You've used all {sessionsLimit} session{sessionsLimit !== 1 ? "s" : ""} on the{" "}
-                <span className="font-medium capitalize">{subscription.plan}</span> plan.
+                You've used all {sessionsLimit} session
+                {sessionsLimit !== 1 ? "s" : ""} on the{" "}
+                <span className="font-medium capitalize">
+                  {subscription.plan}
+                </span>{" "}
+                plan.
                 {subscription.plan === "free"
                   ? " Upgrade to Starter for 10 sessions/month."
                   : subscription.plan === "starter"
@@ -381,7 +426,11 @@ export function DashboardPage() {
               <Button
                 size="sm"
                 className="shrink-0"
-                onClick={() => handleUpgrade(subscription.plan === "free" ? "starter" : "premium")}
+                onClick={() =>
+                  handleUpgrade(
+                    subscription.plan === "free" ? "starter" : "premium",
+                  )
+                }
                 disabled={upgrading !== null}
               >
                 {upgrading && <Loader2 className="size-4 mr-2 animate-spin" />}
@@ -406,44 +455,66 @@ export function DashboardPage() {
             {subscription?.plan === "free" && (
               <Button
                 className="w-full gap-2"
-                onClick={() => { setShowLimitModal(false); handleUpgrade("starter"); }}
+                onClick={() => {
+                  setShowLimitModal(false);
+                  handleUpgrade("starter");
+                }}
                 disabled={upgrading !== null}
               >
-                {upgrading === "starter" && <Loader2 className="size-4 animate-spin" />}
+                {upgrading === "starter" && (
+                  <Loader2 className="size-4 animate-spin" />
+                )}
                 <Zap className="size-4" />
                 Upgrade to Starter — €2,000/mo
               </Button>
             )}
-            {(subscription?.plan === "free" || subscription?.plan === "starter") && (
+            {(subscription?.plan === "free" ||
+              subscription?.plan === "starter") && (
               <Button
                 variant={subscription?.plan === "free" ? "outline" : "default"}
                 className="w-full gap-2"
-                onClick={() => { setShowLimitModal(false); handleUpgrade("premium"); }}
+                onClick={() => {
+                  setShowLimitModal(false);
+                  handleUpgrade("premium");
+                }}
                 disabled={upgrading !== null}
               >
-                {upgrading === "premium" && <Loader2 className="size-4 animate-spin" />}
+                {upgrading === "premium" && (
+                  <Loader2 className="size-4 animate-spin" />
+                )}
                 Upgrade to Premium — €10,000/mo
               </Button>
             )}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setShowLimitModal(false)}>Maybe Later</Button>
+            <Button variant="ghost" onClick={() => setShowLimitModal(false)}>
+              Maybe Later
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete confirmation modal */}
-      <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
+      <Dialog
+        open={deleteConfirm !== null}
+        onOpenChange={() => setDeleteConfirm(null)}
+      >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Delete Engagement?</DialogTitle>
             <DialogDescription>
-              This will permanently remove this engagement and all its data. This action cannot be undone.
+              This will permanently remove this engagement and all its data.
+              This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={() => deleteConfirm && handleDelete(deleteConfirm)}>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
+            >
               Delete
             </Button>
           </DialogFooter>
@@ -451,7 +522,15 @@ export function DashboardPage() {
       </Dialog>
 
       {/* Onboarding Tutorial */}
-      <Dialog open={showOnboarding} onOpenChange={(open) => { if (!open) { setShowOnboarding(false); localStorage.setItem("mckinsead_onboarding_complete", "1"); } }}>
+      <Dialog
+        open={showOnboarding}
+        onOpenChange={open => {
+          if (!open) {
+            setShowOnboarding(false);
+            localStorage.setItem("mckinsead_onboarding_complete", "1");
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-center text-xl">
@@ -465,19 +544,37 @@ export function DashboardPage() {
             {onboardingStep === 0 && (
               <div className="text-center space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  mckinsead is your <strong>Agentic Strategy Cockpit</strong> — mirroring McKinsey's
-                  problem-solving methodology as an AI-powered workflow.
+                  mckinsead is your <strong>Agentic Strategy Cockpit</strong> —
+                  mirroring McKinsey's problem-solving methodology as an
+                  AI-powered workflow.
                 </p>
                 <div className="grid grid-cols-3 gap-3 mt-4">
                   {[
-                    { emoji: "🎯", label: "Frame Problems", desc: "Using SCQA" },
-                    { emoji: "📊", label: "Run Frameworks", desc: "8 strategy tools" },
-                    { emoji: "📑", label: "Export Reports", desc: "PDF & HTML" },
-                  ].map((f) => (
-                    <div key={f.label} className="bg-muted/50 rounded-lg p-3 text-center">
+                    {
+                      emoji: "🎯",
+                      label: "Frame Problems",
+                      desc: "Using SCQA",
+                    },
+                    {
+                      emoji: "📊",
+                      label: "Run Frameworks",
+                      desc: "8 strategy tools",
+                    },
+                    {
+                      emoji: "📑",
+                      label: "Export Reports",
+                      desc: "PDF & HTML",
+                    },
+                  ].map(f => (
+                    <div
+                      key={f.label}
+                      className="bg-muted/50 rounded-lg p-3 text-center"
+                    >
                       <div className="text-2xl mb-1">{f.emoji}</div>
                       <div className="text-xs font-semibold">{f.label}</div>
-                      <div className="text-[10px] text-muted-foreground">{f.desc}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {f.desc}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -486,16 +583,26 @@ export function DashboardPage() {
             {onboardingStep === 1 && (
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground mb-3 text-center">
-                  Follow the consulting workflow from problem framing to final deliverable:
+                  Follow the consulting workflow from problem framing to final
+                  deliverable:
                 </p>
                 {WORKFLOW_STEPS.map((step, i) => (
-                  <div key={step.stage} className="flex items-center gap-3 py-1.5">
+                  <div
+                    key={step.stage}
+                    className="flex items-center gap-3 py-1.5"
+                  >
                     <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <span className="text-sm"><FaIcon icon={step.icon} /></span>
+                      <span className="text-sm">
+                        <FaIcon icon={step.icon} />
+                      </span>
                     </div>
                     <div className="flex-1">
-                      <div className="text-sm font-semibold">{i + 1}. {step.stage}</div>
-                      <div className="text-[11px] text-muted-foreground">{step.desc}</div>
+                      <div className="text-sm font-semibold">
+                        {i + 1}. {step.stage}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {step.desc}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -504,17 +611,33 @@ export function DashboardPage() {
             {onboardingStep === 2 && (
               <div className="text-center space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Every stage is powered by AI — generate framework analyses with one click,
-                  chat with a strategy consultant, and get data-driven insights.
+                  Every stage is powered by AI — generate framework analyses
+                  with one click, chat with a strategy consultant, and get
+                  data-driven insights.
                 </p>
                 <div className="space-y-2 text-left">
                   {[
-                    { icon: "✨", text: "One-click AI framework generation (SWOT, PESTEL, Porter's 5, etc.)" },
-                    { icon: "💬", text: "AI chat consultant that understands your engagement context" },
-                    { icon: "🔍", text: "Research mode for market data and industry intelligence" },
-                    { icon: "📊", text: "Auto-save everything — pick up where you left off" },
-                  ].map((item) => (
-                    <div key={item.text} className="flex items-start gap-2 text-sm">
+                    {
+                      icon: "✨",
+                      text: "One-click AI framework generation (SWOT, PESTEL, Porter's 5, etc.)",
+                    },
+                    {
+                      icon: "💬",
+                      text: "AI chat consultant that understands your engagement context",
+                    },
+                    {
+                      icon: "🔍",
+                      text: "Research mode for market data and industry intelligence",
+                    },
+                    {
+                      icon: "📊",
+                      text: "Auto-save everything — pick up where you left off",
+                    },
+                  ].map(item => (
+                    <div
+                      key={item.text}
+                      className="flex items-start gap-2 text-sm"
+                    >
                       <span>{item.icon}</span>
                       <span className="text-muted-foreground">{item.text}</span>
                     </div>
@@ -526,28 +649,50 @@ export function DashboardPage() {
               <div className="text-center space-y-4">
                 <div className="text-5xl mb-2">🎉</div>
                 <p className="text-sm text-muted-foreground">
-                  You're all set! Create your first engagement or use a template to get started.
+                  You're all set! Create your first engagement or use a template
+                  to get started.
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Tip: Use the 💬 chat button inside any engagement for AI guidance at every stage.
+                  Tip: Use the 💬 chat button inside any engagement for AI
+                  guidance at every stage.
                 </p>
               </div>
             )}
           </div>
           <DialogFooter className="flex items-center justify-between">
             <div className="flex gap-1">
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className={`size-2 rounded-full transition-colors ${i === onboardingStep ? "bg-primary" : "bg-muted"}`} />
+              {[0, 1, 2, 3].map(i => (
+                <div
+                  key={i}
+                  className={`size-2 rounded-full transition-colors ${i === onboardingStep ? "bg-primary" : "bg-muted"}`}
+                />
               ))}
             </div>
             <div className="flex gap-2">
               {onboardingStep > 0 && (
-                <Button variant="outline" size="sm" onClick={() => setOnboardingStep(onboardingStep - 1)}>Back</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setOnboardingStep(onboardingStep - 1)}
+                >
+                  Back
+                </Button>
               )}
               {onboardingStep < 3 ? (
-                <Button size="sm" onClick={() => setOnboardingStep(onboardingStep + 1)}>Next</Button>
+                <Button
+                  size="sm"
+                  onClick={() => setOnboardingStep(onboardingStep + 1)}
+                >
+                  Next
+                </Button>
               ) : (
-                <Button size="sm" onClick={() => { setShowOnboarding(false); localStorage.setItem("mckinsead_onboarding_complete", "1"); }}>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setShowOnboarding(false);
+                    localStorage.setItem("mckinsead_onboarding_complete", "1");
+                  }}
+                >
                   Get Started
                 </Button>
               )}
@@ -559,17 +704,25 @@ export function DashboardPage() {
       {/* Workflow Overview */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">The McKinsey-Mirrored Workflow</CardTitle>
+          <CardTitle className="text-base">
+            The McKinsey-Mirrored Workflow
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-1 overflow-x-auto pb-1">
             {WORKFLOW_STEPS.map((s, i) => (
               <div key={s.stage} className="flex items-center">
-                {i > 0 && <span className="text-muted-foreground mx-1 text-xs">→</span>}
+                {i > 0 && (
+                  <span className="text-muted-foreground mx-1 text-xs">→</span>
+                )}
                 <div className="flex-shrink-0 bg-muted/60 rounded-lg px-3 py-2 text-center min-w-[90px]">
-                  <div className="text-xl mb-0.5"><FaIcon icon={s.icon} /></div>
+                  <div className="text-xl mb-0.5">
+                    <FaIcon icon={s.icon} />
+                  </div>
                   <div className="text-xs font-semibold">{s.stage}</div>
-                  <div className="text-[10px] text-muted-foreground">{s.desc}</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {s.desc}
+                  </div>
                 </div>
               </div>
             ))}
@@ -583,34 +736,39 @@ export function DashboardPage() {
           {[
             {
               label: "Total Engagements",
-              value: engagements.filter((e) => !e.archived).length,
+              value: engagements.filter(e => !e.archived).length,
               icon: Building2,
               color: "text-primary",
             },
             {
               label: "In Progress",
-              value: engagements.filter((e) => e.progress < 100 && !e.archived).length,
+              value: engagements.filter(e => e.progress < 100 && !e.archived)
+                .length,
               icon: Loader2,
               color: "text-blue-500",
             },
             {
               label: "Avg. Progress",
-              value: `${Math.round(engagements.filter((e) => !e.archived).reduce((sum, e) => sum + (e.progress || 0), 0) / Math.max(1, engagements.filter((e) => !e.archived).length))}%`,
+              value: `${Math.round(engagements.filter(e => !e.archived).reduce((sum, e) => sum + (e.progress || 0), 0) / Math.max(1, engagements.filter(e => !e.archived).length))}%`,
               icon: BarChart3,
               color: "text-violet-500",
             },
             {
               label: "Completed",
-              value: engagements.filter((e) => (e.progress >= 100 || e.stage === "export") && !e.archived).length,
+              value: engagements.filter(
+                e => (e.progress >= 100 || e.stage === "export") && !e.archived,
+              ).length,
               icon: Zap,
               color: "text-emerald-500",
             },
-          ].map((stat) => (
+          ].map(stat => (
             <Card key={stat.label}>
               <CardContent className="py-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">{stat.label}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {stat.label}
+                    </p>
                     <p className="text-2xl font-bold">{stat.value}</p>
                   </div>
                   <stat.icon className={`size-8 ${stat.color} opacity-20`} />
@@ -622,7 +780,7 @@ export function DashboardPage() {
       )}
 
       {/* Stage Distribution & Activity */}
-      {engagements.filter((e) => !e.archived).length > 0 && (
+      {engagements.filter(e => !e.archived).length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Stage Distribution */}
           <Card>
@@ -631,21 +789,45 @@ export function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {(["scoping", "frameworks", "hypothesis", "analysis", "synthesis", "communication", "export"] as const).map((stage) => {
-                  const count = engagements.filter((e) => !e.archived && e.stage === stage).length;
-                  const total = engagements.filter((e) => !e.archived).length;
+                {(
+                  [
+                    "scoping",
+                    "frameworks",
+                    "hypothesis",
+                    "analysis",
+                    "synthesis",
+                    "communication",
+                    "export",
+                  ] as const
+                ).map(stage => {
+                  const count = engagements.filter(
+                    e => !e.archived && e.stage === stage,
+                  ).length;
+                  const total = engagements.filter(e => !e.archived).length;
                   const pct = total > 0 ? Math.round((count / total) * 100) : 0;
                   const colors: Record<string, string> = {
-                    scoping: "bg-blue-500", frameworks: "bg-indigo-500", hypothesis: "bg-violet-500",
-                    analysis: "bg-purple-500", synthesis: "bg-fuchsia-500", communication: "bg-pink-500", export: "bg-green-500",
+                    scoping: "bg-blue-500",
+                    frameworks: "bg-indigo-500",
+                    hypothesis: "bg-violet-500",
+                    analysis: "bg-purple-500",
+                    synthesis: "bg-fuchsia-500",
+                    communication: "bg-pink-500",
+                    export: "bg-green-500",
                   };
                   return (
                     <div key={stage} className="flex items-center gap-3">
-                      <span className="text-xs w-24 capitalize text-muted-foreground">{stage}</span>
+                      <span className="text-xs w-24 capitalize text-muted-foreground">
+                        {stage}
+                      </span>
                       <div className="flex-1 bg-muted rounded-full h-2.5">
-                        <div className={`${colors[stage]} rounded-full h-2.5 transition-all`} style={{ width: `${pct}%` }} />
+                        <div
+                          className={`${colors[stage]} rounded-full h-2.5 transition-all`}
+                          style={{ width: `${pct}%` }}
+                        />
                       </div>
-                      <span className="text-xs font-medium w-6 text-right">{count}</span>
+                      <span className="text-xs font-medium w-6 text-right">
+                        {count}
+                      </span>
                     </div>
                   );
                 })}
@@ -661,10 +843,10 @@ export function DashboardPage() {
             <CardContent>
               <div className="space-y-3 max-h-[200px] overflow-y-auto">
                 {engagements
-                  .filter((e) => !e.archived)
+                  .filter(e => !e.archived)
                   .sort((a, b) => b._creationTime - a._creationTime)
                   .slice(0, 5)
-                  .map((eng) => (
+                  .map(eng => (
                     <div
                       key={eng._id}
                       className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded-lg p-1.5 -mx-1.5 transition-colors"
@@ -674,18 +856,29 @@ export function DashboardPage() {
                         <Building2 className="size-3.5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">{eng.company}</div>
+                        <div className="text-sm font-medium truncate">
+                          {eng.company}
+                        </div>
                         <div className="text-[10px] text-muted-foreground">
-                          {eng.stage} · {eng.progress}% · {new Date(eng._creationTime).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          {eng.stage} · {eng.progress}% ·{" "}
+                          {new Date(eng._creationTime).toLocaleDateString(
+                            "en-US",
+                            { month: "short", day: "numeric" },
+                          )}
                         </div>
                       </div>
                       <div className="w-12 bg-muted rounded-full h-1.5 shrink-0">
-                        <div className="bg-primary rounded-full h-1.5 transition-all" style={{ width: `${eng.progress}%` }} />
+                        <div
+                          className="bg-primary rounded-full h-1.5 transition-all"
+                          style={{ width: `${eng.progress}%` }}
+                        />
                       </div>
                     </div>
                   ))}
-                {engagements.filter((e) => !e.archived).length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-4">No recent activity</p>
+                {engagements.filter(e => !e.archived).length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-4">
+                    No recent activity
+                  </p>
                 )}
               </div>
             </CardContent>
@@ -698,44 +891,58 @@ export function DashboardPage() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Your Engagements</h2>
           <div className="flex items-center gap-2">
-          {engagements.filter((e) => !e.archived).length >= 2 && (
-            <button
-              onClick={() => { setShowCompare(!showCompare); setCompareIds([]); }}
-              className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-colors ${
-                showCompare
-                  ? "bg-violet-500/10 text-violet-600 border border-violet-300 dark:border-violet-800"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              }`}
-            >
-              <Columns className="size-3" />
-              Compare
-            </button>
-          )}
-          {engagements.some((e) => e.archived) && (
-            <button
-              onClick={() => setShowArchived(!showArchived)}
-              className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-colors ${
-                showArchived
-                  ? "bg-primary/10 text-primary border border-primary/30"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              }`}
-            >
-              <Archive className="size-3" />
-              {showArchived ? "Hide Archived" : `Show Archived (${engagements.filter((e) => e.archived).length})`}
-            </button>
-          )}
+            {engagements.filter(e => !e.archived).length >= 2 && (
+              <button
+                onClick={() => {
+                  setShowCompare(!showCompare);
+                  setCompareIds([]);
+                }}
+                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-colors ${
+                  showCompare
+                    ? "bg-violet-500/10 text-violet-600 border border-violet-300 dark:border-violet-800"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                <Columns className="size-3" />
+                Compare
+              </button>
+            )}
+            {engagements.some(e => e.archived) && (
+              <button
+                onClick={() => setShowArchived(!showArchived)}
+                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-colors ${
+                  showArchived
+                    ? "bg-primary/10 text-primary border border-primary/30"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                <Archive className="size-3" />
+                {showArchived
+                  ? "Hide Archived"
+                  : `Show Archived (${engagements.filter(e => e.archived).length})`}
+              </button>
+            )}
           </div>
         </div>
         {engagements.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
-              <div className="text-5xl mb-4"><FaIcon icon={FA.compass} /></div>
+              <div className="text-5xl mb-4">
+                <FaIcon icon={FA.compass} />
+              </div>
               <p className="text-lg mb-2 font-medium">No engagements yet</p>
               <p className="text-sm text-muted-foreground mb-6">
-                Create your first strategy engagement or use a quick-start template
+                Create your first strategy engagement or use a quick-start
+                template
               </p>
               <Button
-                onClick={() => needsKeys ? navigate("/settings") : isAtLimit ? setShowLimitModal(true) : setShowCreate(true)}
+                onClick={() =>
+                  needsKeys
+                    ? navigate("/settings")
+                    : isAtLimit
+                      ? setShowLimitModal(true)
+                      : setShowCreate(true)
+                }
               >
                 {needsKeys ? "Configure AI Keys" : "Create Engagement"}
               </Button>
@@ -743,80 +950,109 @@ export function DashboardPage() {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {engagements.filter((e) => showArchived ? e.archived : !e.archived).map((eng) => (
-              <Card
-                key={eng._id}
-                className={`group cursor-pointer hover:shadow-md transition-shadow ${eng.archived ? "opacity-60" : ""}`}
-                onClick={() => navigate(`/engagement/${eng._id}`)}
-              >
-                <CardContent className="flex items-center gap-6 py-4">
-                  <div className="rounded-lg bg-primary/10 p-3">
-                    <Building2 className="size-6 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                      <h3 className="font-semibold truncate">{eng.company}</h3>
-                      <Badge variant="secondary" className={stageColor(eng.stage)}>
-                        {eng.stage}
-                      </Badge>
-                      {eng.archived && (
-                        <Badge variant="outline" className="text-[10px] opacity-70">
-                          <Archive className="size-2.5 mr-1" /> Archived
-                        </Badge>
-                      )}
+            {engagements
+              .filter(e => (showArchived ? e.archived : !e.archived))
+              .map(eng => (
+                <Card
+                  key={eng._id}
+                  className={`group cursor-pointer hover:shadow-md transition-shadow ${eng.archived ? "opacity-60" : ""}`}
+                  onClick={() => navigate(`/engagement/${eng._id}`)}
+                >
+                  <CardContent className="flex items-center gap-6 py-4">
+                    <div className="rounded-lg bg-primary/10 p-3">
+                      <Building2 className="size-6 text-primary" />
                     </div>
-                    <p className="text-sm text-muted-foreground truncate">{eng.question || eng.industry}</p>
-                  </div>
-                  <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="text-right text-xs">
-                      <div className="text-muted-foreground">
-                        {new Date(eng._creationTime).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1">
+                        <h3 className="font-semibold truncate">
+                          {eng.company}
+                        </h3>
+                        <Badge
+                          variant="secondary"
+                          className={stageColor(eng.stage)}
+                        >
+                          {eng.stage}
+                        </Badge>
+                        {eng.archived && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] opacity-70"
+                          >
+                            <Archive className="size-2.5 mr-1" /> Archived
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {eng.question || eng.industry}
+                      </p>
+                    </div>
+                    <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="text-right text-xs">
+                        <div className="text-muted-foreground">
+                          {new Date(eng._creationTime).toLocaleDateString(
+                            "en-US",
+                            { month: "short", day: "numeric" },
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-medium text-foreground">
+                          {eng.progress}%
+                        </div>
+                        <div className="text-xs">Progress</div>
+                      </div>
+                      <div className="w-24 bg-muted rounded-full h-2">
+                        <div
+                          className="bg-primary rounded-full h-2 transition-all"
+                          style={{ width: `${eng.progress}%` }}
+                        />
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-medium text-foreground">{eng.progress}%</div>
-                      <div className="text-xs">Progress</div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        className="p-2 rounded-md hover:bg-blue-500/10 text-muted-foreground hover:text-blue-600 transition-all"
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleClone(eng._id);
+                        }}
+                        title="Clone engagement"
+                      >
+                        <Copy className="size-4" />
+                      </button>
+                      <button
+                        className="p-2 rounded-md hover:bg-amber-500/10 text-muted-foreground hover:text-amber-600 transition-all"
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleArchive(eng._id);
+                        }}
+                        title={eng.archived ? "Unarchive" : "Archive"}
+                      >
+                        <Archive className="size-4" />
+                      </button>
+                      <button
+                        className="p-2 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setDeleteConfirm(eng._id);
+                        }}
+                        title="Delete engagement"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
                     </div>
-                    <div className="w-24 bg-muted rounded-full h-2">
-                      <div
-                        className="bg-primary rounded-full h-2 transition-all"
-                        style={{ width: `${eng.progress}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      className="p-2 rounded-md hover:bg-blue-500/10 text-muted-foreground hover:text-blue-600 transition-all"
-                      onClick={(e) => { e.stopPropagation(); handleClone(eng._id); }}
-                      title="Clone engagement"
-                    >
-                      <Copy className="size-4" />
-                    </button>
-                    <button
-                      className="p-2 rounded-md hover:bg-amber-500/10 text-muted-foreground hover:text-amber-600 transition-all"
-                      onClick={(e) => { e.stopPropagation(); handleArchive(eng._id); }}
-                      title={eng.archived ? "Unarchive" : "Archive"}
-                    >
-                      <Archive className="size-4" />
-                    </button>
-                    <button
-                      className="p-2 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
-                      onClick={(e) => { e.stopPropagation(); setDeleteConfirm(eng._id); }}
-                      title="Delete engagement"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  </div>
-                  <ArrowRight className="size-4 text-muted-foreground" />
-                </CardContent>
-              </Card>
-            ))}
-            {engagements.filter((e) => showArchived ? e.archived : !e.archived).length === 0 && (
+                    <ArrowRight className="size-4 text-muted-foreground" />
+                  </CardContent>
+                </Card>
+              ))}
+            {engagements.filter(e => (showArchived ? e.archived : !e.archived))
+              .length === 0 && (
               <Card>
                 <CardContent className="text-center py-8">
                   <Archive className="size-8 mx-auto mb-2 text-muted-foreground opacity-30" />
                   <p className="text-sm text-muted-foreground">
-                    {showArchived ? "No archived engagements" : "All engagements are archived. Click \"Show Archived\" to see them."}
+                    {showArchived
+                      ? "No archived engagements"
+                      : 'All engagements are archived. Click "Show Archived" to see them.'}
                   </p>
                 </CardContent>
               </Card>
@@ -835,12 +1071,16 @@ export function DashboardPage() {
                   <Trophy className="size-5 text-amber-600" />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold">Level {gamificationProfile.level} Strategist</div>
-                  <div className="text-xs text-muted-foreground">{gamificationProfile.xp} XP earned</div>
+                  <div className="text-sm font-semibold">
+                    Level {gamificationProfile.level} Strategist
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {gamificationProfile.xp} XP earned
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
-                {gamificationProfile.allBadges.slice(0, 6).map((badge) => (
+                {gamificationProfile.allBadges.slice(0, 6).map(badge => (
                   <span
                     key={badge.id}
                     className={`text-lg cursor-default transition-opacity ${gamificationProfile.badges.includes(badge.id) ? "opacity-100" : "opacity-20 grayscale"}`}
@@ -854,18 +1094,21 @@ export function DashboardPage() {
             <div className="mt-3 bg-muted rounded-full h-2">
               <div
                 className="bg-amber-500 rounded-full h-2 transition-all"
-                style={{ width: `${Math.min(100, (gamificationProfile.xp % 100))}%` }}
+                style={{
+                  width: `${Math.min(100, gamificationProfile.xp % 100)}%`,
+                }}
               />
             </div>
             <div className="text-[10px] text-muted-foreground mt-1">
-              {100 - (gamificationProfile.xp % 100)} XP to Level {gamificationProfile.level + 1}
+              {100 - (gamificationProfile.xp % 100)} XP to Level{" "}
+              {gamificationProfile.level + 1}
             </div>
           </CardContent>
         </Card>
       )}
 
       {/* Engagement Comparison (#5) */}
-      {showCompare && engagements.filter((e) => !e.archived).length >= 2 && (
+      {showCompare && engagements.filter(e => !e.archived).length >= 2 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -875,44 +1118,71 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2 mb-4">
-              {engagements.filter((e) => !e.archived).map((eng) => (
-                <label key={eng._id} className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={compareIds.includes(eng._id)}
-                    onChange={(e) => {
-                      if (e.target.checked && compareIds.length < 3) {
-                        setCompareIds([...compareIds, eng._id]);
-                      } else {
-                        setCompareIds(compareIds.filter((id) => id !== eng._id));
-                      }
-                    }}
-                    className="rounded"
-                  />
-                  {eng.company} ({eng.industry})
-                </label>
-              ))}
+              {engagements
+                .filter(e => !e.archived)
+                .map(eng => (
+                  <label
+                    key={eng._id}
+                    className="flex items-center gap-2 text-sm cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={compareIds.includes(eng._id)}
+                      onChange={e => {
+                        if (e.target.checked && compareIds.length < 3) {
+                          setCompareIds([...compareIds, eng._id]);
+                        } else {
+                          setCompareIds(
+                            compareIds.filter(id => id !== eng._id),
+                          );
+                        }
+                      }}
+                      className="rounded"
+                    />
+                    {eng.company} ({eng.industry})
+                  </label>
+                ))}
             </div>
             {compareIds.length >= 2 && (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr>
-                      <th className="text-left p-2 border-b font-medium text-muted-foreground">Metric</th>
-                      {compareIds.map((id) => {
-                        const eng = engagements.find((e) => e._id === id);
-                        return <th key={id} className="text-left p-2 border-b font-medium">{eng?.company ?? id}</th>;
+                      <th className="text-left p-2 border-b font-medium text-muted-foreground">
+                        Metric
+                      </th>
+                      {compareIds.map(id => {
+                        const eng = engagements.find(e => e._id === id);
+                        return (
+                          <th
+                            key={id}
+                            className="text-left p-2 border-b font-medium"
+                          >
+                            {eng?.company ?? id}
+                          </th>
+                        );
                       })}
                     </tr>
                   </thead>
                   <tbody>
-                    {["Stage", "Progress", "Industry"].map((metric) => (
+                    {["Stage", "Progress", "Industry"].map(metric => (
                       <tr key={metric}>
-                        <td className="p-2 border-b text-muted-foreground">{metric}</td>
-                        {compareIds.map((id) => {
-                          const eng = engagements.find((e) => e._id === id);
-                          const val = metric === "Stage" ? eng?.stage : metric === "Progress" ? `${eng?.progress}%` : eng?.industry;
-                          return <td key={id} className="p-2 border-b">{val ?? "—"}</td>;
+                        <td className="p-2 border-b text-muted-foreground">
+                          {metric}
+                        </td>
+                        {compareIds.map(id => {
+                          const eng = engagements.find(e => e._id === id);
+                          const val =
+                            metric === "Stage"
+                              ? eng?.stage
+                              : metric === "Progress"
+                                ? `${eng?.progress}%`
+                                : eng?.industry;
+                          return (
+                            <td key={id} className="p-2 border-b">
+                              {val ?? "—"}
+                            </td>
+                          );
                         })}
                       </tr>
                     ))}
@@ -928,7 +1198,7 @@ export function DashboardPage() {
       <div>
         <h2 className="text-lg font-semibold mb-4">Quick-Start Templates</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {TEMPLATES.map((tpl) => (
+          {TEMPLATES.map(tpl => (
             <Card
               key={tpl.title}
               className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-primary"
@@ -938,7 +1208,7 @@ export function DashboardPage() {
                 } else if (isAtLimit) {
                   setShowLimitModal(true);
                   setLimitMessage(
-                    `You've used all ${sessionsLimit} session${sessionsLimit !== 1 ? "s" : ""} this month. Upgrade to create more engagements.`
+                    `You've used all ${sessionsLimit} session${sessionsLimit !== 1 ? "s" : ""} this month. Upgrade to create more engagements.`,
                   );
                 } else {
                   setCompany("");
@@ -954,8 +1224,10 @@ export function DashboardPage() {
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">{tpl.desc}</p>
                 <div className="flex flex-wrap gap-1">
-                  {tpl.frameworks.map((f) => (
-                    <Badge key={f} variant="secondary" className="text-[10px]">{f}</Badge>
+                  {tpl.frameworks.map(f => (
+                    <Badge key={f} variant="secondary" className="text-[10px]">
+                      {f}
+                    </Badge>
                   ))}
                 </div>
               </CardContent>

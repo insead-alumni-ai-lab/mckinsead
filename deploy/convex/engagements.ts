@@ -1,19 +1,19 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { mutation, query } from "./_generated/server";
-import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { mutation, query } from "./_generated/server";
 
 // ─── Queries ──────────────────────────────────────────────────
 
 /** List all engagements for the current user (newest first). */
 export const list = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async ctx => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
     const engs = await ctx.db
       .query("engagements")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .withIndex("by_userId", q => q.eq("userId", userId))
       .order("desc")
       .collect();
     return engs;
@@ -39,8 +39,8 @@ export const get = query({
     if (email) {
       const share = await ctx.db
         .query("shares")
-        .withIndex("by_engagementId", (q) => q.eq("engagementId", id))
-        .filter((q) =>
+        .withIndex("by_engagementId", q => q.eq("engagementId", id))
+        .filter(q =>
           q.and(
             q.eq(q.field("sharedWithEmail"), email),
             q.eq(q.field("active"), true),
@@ -73,11 +73,14 @@ export const create = mutation({
     // ── Check subscription & session limit ──
     const sub = await ctx.db
       .query("subscriptions")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .withIndex("by_userId", q => q.eq("userId", userId))
       .unique();
 
     if (!sub) {
-      return { success: false, reason: "No subscription. Please complete onboarding." };
+      return {
+        success: false,
+        reason: "No subscription. Please complete onboarding.",
+      };
     }
     if (sub.status !== "active") {
       return { success: false, reason: "Subscription not active." };
@@ -144,13 +147,17 @@ export const create = mutation({
     // Check for multi_engagement badge
     const allEngs = await ctx.db
       .query("engagements")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .withIndex("by_userId", q => q.eq("userId", userId))
       .collect();
     if (allEngs.length >= 5) {
-      await ctx.scheduler.runAfter(0, internal.gamification.internalAwardBadge, {
-        userId,
-        badgeId: "multi_engagement",
-      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.gamification.internalAwardBadge,
+        {
+          userId,
+          badgeId: "multi_engagement",
+        },
+      );
     }
 
     // ── Audit trail (#2) ──
@@ -158,7 +165,10 @@ export const create = mutation({
       userId,
       engagementId: engId,
       action: "engagement.created",
-      details: JSON.stringify({ company: args.company, industry: args.industry }),
+      details: JSON.stringify({
+        company: args.company,
+        industry: args.industry,
+      }),
     });
 
     return {
@@ -218,10 +228,14 @@ export const saveStageData = mutation({
 
     const patch: Record<string, string> = {};
     if (data.scopingData !== undefined) patch.scopingData = data.scopingData;
-    if (data.hypothesisData !== undefined) patch.hypothesisData = data.hypothesisData;
-    if (data.synthesisData !== undefined) patch.synthesisData = data.synthesisData;
-    if (data.communicationData !== undefined) patch.communicationData = data.communicationData;
-    if (data.gatesApproved !== undefined) patch.gatesApproved = data.gatesApproved;
+    if (data.hypothesisData !== undefined)
+      patch.hypothesisData = data.hypothesisData;
+    if (data.synthesisData !== undefined)
+      patch.synthesisData = data.synthesisData;
+    if (data.communicationData !== undefined)
+      patch.communicationData = data.communicationData;
+    if (data.gatesApproved !== undefined)
+      patch.gatesApproved = data.gatesApproved;
 
     if (Object.keys(patch).length > 0) {
       await ctx.db.patch(id, patch);
@@ -241,11 +255,15 @@ export const clone = mutation({
     // Check session limit
     const sub = await ctx.db
       .query("subscriptions")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .withIndex("by_userId", q => q.eq("userId", userId))
       .unique();
-    if (!sub || sub.status !== "active") throw new Error("No active subscription");
+    if (!sub || sub.status !== "active")
+      throw new Error("No active subscription");
     if (sub.sessionsUsed >= sub.sessionsLimit) {
-      return { success: false, reason: "Session limit reached. Upgrade to clone more engagements." };
+      return {
+        success: false,
+        reason: "Session limit reached. Upgrade to clone more engagements.",
+      };
     }
 
     // Create the clone
@@ -269,7 +287,7 @@ export const clone = mutation({
     // Clone framework data
     const frameworks = await ctx.db
       .query("frameworkData")
-      .withIndex("by_engagementId", (q) => q.eq("engagementId", id))
+      .withIndex("by_engagementId", q => q.eq("engagementId", id))
       .collect();
     for (const fw of frameworks) {
       await ctx.db.insert("frameworkData", {

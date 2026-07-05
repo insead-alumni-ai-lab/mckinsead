@@ -6,9 +6,14 @@
  * Wires gamification (#1) and audit trail (#2).
  */
 import { v } from "convex/values";
+import { api, internal } from "./_generated/api";
 import { action } from "./_generated/server";
-import { internal, api } from "./_generated/api";
-import { resolveAiConfig, callLLMPrompt, parseJsonResponse, sanitizeForLLM } from "./llm";
+import {
+  callLLMPrompt,
+  parseJsonResponse,
+  resolveAiConfig,
+  sanitizeForLLM,
+} from "./llm";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -23,7 +28,7 @@ interface EngagementContext {
 // ─── Framework Prompts ────────────────────────────────────────
 
 const FRAMEWORK_PROMPTS: Record<string, (ctx: EngagementContext) => string> = {
-  swot: (ctx) => `You are a senior McKinsey-style strategy consultant performing a SWOT analysis.
+  swot: ctx => `You are a senior McKinsey-style strategy consultant performing a SWOT analysis.
 
 Company: ${ctx.company}
 Industry: ${ctx.industry}
@@ -41,7 +46,8 @@ Respond ONLY with valid JSON in this exact format (no markdown, no explanation):
   "threats": ["item1", "item2", ...]
 }`,
 
-  pestel: (ctx) => `You are a senior McKinsey-style strategy consultant performing a PESTEL analysis.
+  pestel:
+    ctx => `You are a senior McKinsey-style strategy consultant performing a PESTEL analysis.
 
 Company: ${ctx.company}
 Industry: ${ctx.industry}
@@ -60,7 +66,8 @@ Respond ONLY with valid JSON in this exact format (no markdown, no explanation):
   "legal": ["factor1", "factor2", ...]
 }`,
 
-  porter5: (ctx) => `You are a senior McKinsey-style strategy consultant performing Porter's Five Forces analysis.
+  porter5:
+    ctx => `You are a senior McKinsey-style strategy consultant performing Porter's Five Forces analysis.
 
 Company: ${ctx.company}
 Industry: ${ctx.industry}
@@ -80,7 +87,7 @@ Respond ONLY with valid JSON in this exact format (no markdown, no explanation):
   ]
 }`,
 
-  bcg: (ctx) => `You are a senior McKinsey-style strategy consultant creating a BCG Growth-Share Matrix.
+  bcg: ctx => `You are a senior McKinsey-style strategy consultant creating a BCG Growth-Share Matrix.
 
 Company: ${ctx.company}
 Industry: ${ctx.industry}
@@ -99,7 +106,8 @@ Respond ONLY with valid JSON in this exact format (no markdown, no explanation):
 }
 Valid quadrants: "star", "cash-cow", "question-mark", "dog"`,
 
-  ansoff: (ctx) => `You are a senior McKinsey-style strategy consultant creating an Ansoff Growth Matrix.
+  ansoff:
+    ctx => `You are a senior McKinsey-style strategy consultant creating an Ansoff Growth Matrix.
 
 Company: ${ctx.company}
 Industry: ${ctx.industry}
@@ -118,7 +126,8 @@ Respond ONLY with valid JSON in this exact format (no markdown, no explanation):
   ]
 }`,
 
-  sipoc: (ctx) => `You are a senior McKinsey-style strategy consultant creating a SIPOC process map.
+  sipoc:
+    ctx => `You are a senior McKinsey-style strategy consultant creating a SIPOC process map.
 
 Company: ${ctx.company}
 Industry: ${ctx.industry}
@@ -134,7 +143,8 @@ Respond ONLY with valid JSON in this exact format (no markdown, no explanation):
   ]
 }`,
 
-  value_chain: (ctx) => `You are a senior McKinsey-style strategy consultant performing a Porter Value Chain analysis.
+  value_chain:
+    ctx => `You are a senior McKinsey-style strategy consultant performing a Porter Value Chain analysis.
 
 Company: ${ctx.company}
 Industry: ${ctx.industry}
@@ -155,7 +165,8 @@ Respond ONLY with valid JSON in this exact format (no markdown, no explanation):
 }
 The "cost" values should sum to approximately 90 (leaving ~10% margin). "diff" must be "Low", "Medium", or "High".`,
 
-  root_cause: (ctx) => `You are a senior McKinsey-style strategy consultant performing a root cause analysis.
+  root_cause:
+    ctx => `You are a senior McKinsey-style strategy consultant performing a root cause analysis.
 
 Company: ${ctx.company}
 Industry: ${ctx.industry}
@@ -195,12 +206,15 @@ export const generateFramework = action({
     if (!userId) return { success: false, error: "Not authenticated" };
 
     // Get engagement details
-    const engagement = await ctx.runQuery(api.engagements.get, { id: engagementId });
+    const engagement = await ctx.runQuery(api.engagements.get, {
+      id: engagementId,
+    });
     if (!engagement) return { success: false, error: "Engagement not found" };
 
     // Get the prompt generator
     const promptFn = FRAMEWORK_PROMPTS[framework];
-    if (!promptFn) return { success: false, error: `Unknown framework: ${framework}` };
+    if (!promptFn)
+      return { success: false, error: `Unknown framework: ${framework}` };
 
     // Mark as generating
     await ctx.runMutation(api.frameworkData.save, {
@@ -218,9 +232,15 @@ export const generateFramework = action({
       const engCtx: EngagementContext = {
         company: sanitizeForLLM(engagement.company),
         industry: sanitizeForLLM(engagement.industry),
-        question: engagement.question ? sanitizeForLLM(engagement.question) : undefined,
-        geographies: engagement.geographies ? sanitizeForLLM(engagement.geographies) : undefined,
-        competitors: engagement.competitors ? sanitizeForLLM(engagement.competitors) : undefined,
+        question: engagement.question
+          ? sanitizeForLLM(engagement.question)
+          : undefined,
+        geographies: engagement.geographies
+          ? sanitizeForLLM(engagement.geographies)
+          : undefined,
+        competitors: engagement.competitors
+          ? sanitizeForLLM(engagement.competitors)
+          : undefined,
       };
 
       // Call LLM via shared utility (#4)
@@ -274,19 +294,31 @@ export const generateAll = action({
   },
   returns: v.object({
     success: v.boolean(),
-    results: v.array(v.object({
-      framework: v.string(),
-      success: v.boolean(),
-      error: v.optional(v.string()),
-    })),
+    results: v.array(
+      v.object({
+        framework: v.string(),
+        success: v.boolean(),
+        error: v.optional(v.string()),
+      }),
+    ),
   }),
   handler: async (ctx, { engagementId }) => {
     const frameworks = [
-      "swot", "pestel", "porter5", "bcg",
-      "ansoff", "sipoc", "value_chain", "root_cause",
+      "swot",
+      "pestel",
+      "porter5",
+      "bcg",
+      "ansoff",
+      "sipoc",
+      "value_chain",
+      "root_cause",
     ];
 
-    const results: Array<{ framework: string; success: boolean; error?: string }> = [];
+    const results: Array<{
+      framework: string;
+      success: boolean;
+      error?: string;
+    }> = [];
 
     for (const fw of frameworks) {
       const result = await ctx.runAction(api.frameworkAi.generateFramework, {
@@ -300,11 +332,13 @@ export const generateAll = action({
       });
     }
 
-    const allSuccess = results.every((r) => r.success);
+    const allSuccess = results.every(r => r.success);
 
     // ── Gamification (#1): Award badge if all 8 generated successfully ──
     if (allSuccess) {
-      const engagement = await ctx.runQuery(api.engagements.get, { id: engagementId });
+      const engagement = await ctx.runQuery(api.engagements.get, {
+        id: engagementId,
+      });
       if (engagement) {
         await ctx.runMutation(internal.gamification.internalAwardBadge, {
           userId: engagement.userId,
@@ -336,7 +370,9 @@ export const inferSCQA = action({
   }),
   handler: async (ctx, { engagementId, problemDescription }) => {
     // 1. Load engagement to get context
-    const engagement = await ctx.runQuery(api.engagements.get, { id: engagementId });
+    const engagement = await ctx.runQuery(api.engagements.get, {
+      id: engagementId,
+    });
     if (!engagement) return { success: false, error: "Engagement not found" };
 
     const sanitizedProblem = sanitizeForLLM(problemDescription);
@@ -417,4 +453,3 @@ Respond ONLY with valid JSON in this exact format (no markdown, no explanation):
     }
   },
 });
-

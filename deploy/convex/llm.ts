@@ -30,7 +30,10 @@ export function sanitizeForLLM(input: string): string {
   text = text.replace(/\[INST\][\s\S]*?\[\/INST\]/gi, "");
   text = text.replace(/<<SYS>>[\s\S]*?<<\/SYS>>/gi, "");
   // Defuse common injection phrases (case-insensitive)
-  text = text.replace(/\bignore\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?|rules?)\b/gi, "[filtered]");
+  text = text.replace(
+    /\bignore\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?|rules?)\b/gi,
+    "[filtered]",
+  );
   text = text.replace(/\byou\s+are\s+now\b/gi, "[filtered]");
   text = text.replace(/\bpretend\s+(to\s+be|you\s+are)\b/gi, "[filtered]");
   text = text.replace(/\bsystem\s*:\s*/gi, "system - ");
@@ -49,7 +52,9 @@ export async function resolveAiConfig(
   userId: Id<"users">,
 ): Promise<LLMConfig> {
   // 1. User BYOK keys
-  const userConfigs = (await ctx.runQuery(internal.userAiConfig.listForUser, { userId })) as Array<{
+  const userConfigs = (await ctx.runQuery(internal.userAiConfig.listForUser, {
+    userId,
+  })) as Array<{
     provider: string;
     apiKey: string;
     model?: string;
@@ -57,18 +62,29 @@ export async function resolveAiConfig(
   }>;
 
   if (userConfigs.length > 0) {
-    const anthropic = userConfigs.find((c) => c.provider === "anthropic");
+    const anthropic = userConfigs.find(c => c.provider === "anthropic");
     const config = anthropic ?? userConfigs[0];
     return {
       provider: config.provider as "anthropic" | "openai",
       apiKey: config.apiKey,
-      model: config.model ?? (config.provider === "anthropic" ? "claude-sonnet-4-20250514" : "gpt-4o"),
-      baseUrl: config.baseUrl ?? (config.provider === "anthropic" ? "https://api.anthropic.com" : "https://api.openai.com/v1"),
+      model:
+        config.model ??
+        (config.provider === "anthropic"
+          ? "claude-sonnet-4-20250514"
+          : "gpt-4o"),
+      baseUrl:
+        config.baseUrl ??
+        (config.provider === "anthropic"
+          ? "https://api.anthropic.com"
+          : "https://api.openai.com/v1"),
     };
   }
 
   // 2. Platform managed keys
-  const platformConfigs = (await ctx.runQuery(internal.admin.getPlatformAiConfigs, {})) as Array<{
+  const platformConfigs = (await ctx.runQuery(
+    internal.admin.getPlatformAiConfigs,
+    {},
+  )) as Array<{
     provider: string;
     apiKey: string;
     model?: string;
@@ -76,13 +92,21 @@ export async function resolveAiConfig(
   }>;
 
   if (platformConfigs.length > 0) {
-    const anthropic = platformConfigs.find((c) => c.provider === "anthropic");
+    const anthropic = platformConfigs.find(c => c.provider === "anthropic");
     const config = anthropic ?? platformConfigs[0];
     return {
       provider: config.provider as "anthropic" | "openai",
       apiKey: config.apiKey,
-      model: config.model ?? (config.provider === "anthropic" ? "claude-sonnet-4-20250514" : "gpt-4o"),
-      baseUrl: config.baseUrl ?? (config.provider === "anthropic" ? "https://api.anthropic.com" : "https://api.openai.com/v1"),
+      model:
+        config.model ??
+        (config.provider === "anthropic"
+          ? "claude-sonnet-4-20250514"
+          : "gpt-4o"),
+      baseUrl:
+        config.baseUrl ??
+        (config.provider === "anthropic"
+          ? "https://api.anthropic.com"
+          : "https://api.openai.com/v1"),
     };
   }
 
@@ -107,7 +131,9 @@ export async function resolveAiConfig(
     };
   }
 
-  throw new Error("No AI provider configured. Set API keys in Settings, Admin, or environment variables.");
+  throw new Error(
+    "No AI provider configured. Set API keys in Settings, Admin, or environment variables.",
+  );
 }
 
 // ─── LLM Calls ────────────────────────────────────────────────
@@ -116,7 +142,10 @@ export async function resolveAiConfig(
  * Call LLM with a single prompt (used for framework JSON generation).
  * System message is hardcoded to enforce JSON-only output.
  */
-export async function callLLMPrompt(config: LLMConfig, prompt: string): Promise<string> {
+export async function callLLMPrompt(
+  config: LLMConfig,
+  prompt: string,
+): Promise<string> {
   if (config.provider === "anthropic") {
     const res = await fetch(`${config.baseUrl}/v1/messages`, {
       method: "POST",
@@ -129,7 +158,8 @@ export async function callLLMPrompt(config: LLMConfig, prompt: string): Promise<
         model: config.model,
         max_tokens: 4096,
         temperature: 0.3,
-        system: "You are a senior strategy consultant. Always respond with valid JSON only — no markdown fences, no explanations, no preamble.",
+        system:
+          "You are a senior strategy consultant. Always respond with valid JSON only — no markdown fences, no explanations, no preamble.",
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -139,8 +169,13 @@ export async function callLLMPrompt(config: LLMConfig, prompt: string): Promise<
       throw new Error(`Anthropic API error (${res.status}): ${errText}`);
     }
 
-    const data = (await res.json()) as { content: Array<{ type: string; text?: string }> };
-    return data.content.filter((b) => b.type === "text" && b.text).map((b) => b.text).join("");
+    const data = (await res.json()) as {
+      content: Array<{ type: string; text?: string }>;
+    };
+    return data.content
+      .filter(b => b.type === "text" && b.text)
+      .map(b => b.text)
+      .join("");
   } else {
     const res = await fetch(`${config.baseUrl}/chat/completions`, {
       method: "POST",
@@ -153,7 +188,11 @@ export async function callLLMPrompt(config: LLMConfig, prompt: string): Promise<
         temperature: 0.3,
         max_tokens: 4096,
         messages: [
-          { role: "system", content: "You are a senior strategy consultant. Always respond with valid JSON only — no markdown fences, no explanations, no preamble." },
+          {
+            role: "system",
+            content:
+              "You are a senior strategy consultant. Always respond with valid JSON only — no markdown fences, no explanations, no preamble.",
+          },
           { role: "user", content: prompt },
         ],
       }),
@@ -164,7 +203,9 @@ export async function callLLMPrompt(config: LLMConfig, prompt: string): Promise<
       throw new Error(`OpenAI API error (${res.status}): ${errText}`);
     }
 
-    const data = (await res.json()) as { choices: Array<{ message: { content: string } }> };
+    const data = (await res.json()) as {
+      choices: Array<{ message: { content: string } }>;
+    };
     return data.choices[0]?.message?.content ?? "";
   }
 }
@@ -178,16 +219,16 @@ export async function callLLMChat(
   messages: Array<{ role: "user" | "assistant" | "system"; content: string }>,
 ): Promise<string> {
   if (config.provider === "anthropic") {
-    const userMessages = messages.filter((m) => m.role !== "system");
+    const userMessages = messages.filter(m => m.role !== "system");
     const systemParts = [
       systemPrompt,
-      ...messages.filter((m) => m.role === "system").map((m) => m.content),
+      ...messages.filter(m => m.role === "system").map(m => m.content),
     ].filter(Boolean);
 
     const body: Record<string, unknown> = {
       model: config.model,
       max_tokens: 2048,
-      messages: userMessages.map((m) => ({ role: m.role, content: m.content })),
+      messages: userMessages.map(m => ({ role: m.role, content: m.content })),
     };
     if (systemParts.length > 0) body.system = systemParts.join("\n\n");
 
@@ -201,13 +242,21 @@ export async function callLLMChat(
       body: JSON.stringify(body),
     });
 
-    if (!res.ok) throw new Error(`Anthropic API error (${res.status}): ${await res.text()}`);
-    const data = (await res.json()) as { content: Array<{ type: string; text?: string }> };
-    return data.content.filter((b) => b.type === "text" && b.text).map((b) => b.text).join("");
+    if (!res.ok)
+      throw new Error(
+        `Anthropic API error (${res.status}): ${await res.text()}`,
+      );
+    const data = (await res.json()) as {
+      content: Array<{ type: string; text?: string }>;
+    };
+    return data.content
+      .filter(b => b.type === "text" && b.text)
+      .map(b => b.text)
+      .join("");
   } else {
     const apiMessages = [
       { role: "system" as const, content: systemPrompt },
-      ...messages.map((m) => ({ role: m.role, content: m.content })),
+      ...messages.map(m => ({ role: m.role, content: m.content })),
     ];
 
     const res = await fetch(`${config.baseUrl}/chat/completions`, {
@@ -216,11 +265,18 @@ export async function callLLMChat(
         "Content-Type": "application/json",
         Authorization: `Bearer ${config.apiKey}`,
       },
-      body: JSON.stringify({ model: config.model, messages: apiMessages, max_tokens: 2048 }),
+      body: JSON.stringify({
+        model: config.model,
+        messages: apiMessages,
+        max_tokens: 2048,
+      }),
     });
 
-    if (!res.ok) throw new Error(`OpenAI API error (${res.status}): ${await res.text()}`);
-    const data = (await res.json()) as { choices: Array<{ message: { content: string } }> };
+    if (!res.ok)
+      throw new Error(`OpenAI API error (${res.status}): ${await res.text()}`);
+    const data = (await res.json()) as {
+      choices: Array<{ message: { content: string } }>;
+    };
     return data.choices[0]?.message?.content ?? "";
   }
 }
@@ -233,7 +289,9 @@ export async function callLLMChat(
 export function parseJsonResponse(text: string): unknown {
   let cleaned = text.trim();
   if (cleaned.startsWith("```")) {
-    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?\s*```$/, "");
+    cleaned = cleaned
+      .replace(/^```(?:json)?\s*\n?/, "")
+      .replace(/\n?\s*```$/, "");
   }
   return JSON.parse(cleaned);
 }
@@ -255,7 +313,10 @@ export interface ChatOptions {
 }
 
 const DEFAULTS = {
-  anthropic: { model: "claude-sonnet-4-20250514", baseUrl: "https://api.anthropic.com" },
+  anthropic: {
+    model: "claude-sonnet-4-20250514",
+    baseUrl: "https://api.anthropic.com",
+  },
   openai: { model: "gpt-4o", baseUrl: "https://api.openai.com/v1" },
 } as const;
 
@@ -276,12 +337,19 @@ function getDefaultProvider(): LLMConfig {
   if (anthropic) return anthropic;
   const openai = getProviderConfig("openai");
   if (openai) return openai;
-  throw new Error("No LLM provider configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.");
+  throw new Error(
+    "No LLM provider configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.",
+  );
 }
 
 export async function chatCompletion(options: ChatOptions): Promise<string> {
-  const config = options.provider ? getProviderConfig(options.provider)! : getDefaultProvider();
-  const messages: Array<{ role: "user" | "assistant" | "system"; content: string }> = options.messages;
+  const config = options.provider
+    ? getProviderConfig(options.provider)!
+    : getDefaultProvider();
+  const messages: Array<{
+    role: "user" | "assistant" | "system";
+    content: string;
+  }> = options.messages;
   return callLLMChat(config, options.systemPrompt ?? "", messages);
 }
 
@@ -291,7 +359,7 @@ export function listProviders(): Array<{
   model: string;
   baseUrl: string;
 }> {
-  return (["anthropic", "openai"] as const).map((p) => {
+  return (["anthropic", "openai"] as const).map(p => {
     const cfg = getProviderConfig(p);
     return {
       provider: p,

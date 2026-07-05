@@ -3,9 +3,10 @@
  *
  * Manages: platform AI config, user listing, dashboard stats.
  */
-import { v } from "convex/values";
-import { mutation, query, internalQuery } from "./_generated/server";
+
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { v } from "convex/values";
+import { internalQuery, mutation, query } from "./_generated/server";
 
 // ─── Admin whitelist ──────────────────────────────────────────────────
 const ADMIN_EMAILS = [
@@ -34,10 +35,13 @@ async function requireAdmin(ctx: { db: any; auth: any }) {
  */
 export const getPlatformAiConfig = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async ctx => {
     await requireAdmin(ctx);
     const configs = await ctx.db.query("platformAiConfig").collect();
-    const result: Record<string, { apiKey: boolean; model: string; baseUrl: string }> = {};
+    const result: Record<
+      string,
+      { apiKey: boolean; model: string; baseUrl: string }
+    > = {};
     for (const c of configs) {
       result[c.provider] = {
         apiKey: !!c.apiKey,
@@ -107,7 +111,7 @@ export const removePlatformAiConfig = mutation({
  */
 export const listUsers = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async ctx => {
     await requireAdmin(ctx);
     const users = await ctx.db.query("users").collect();
 
@@ -157,7 +161,7 @@ export const listUsers = query({
  */
 export const dashboardStats = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async ctx => {
     await requireAdmin(ctx);
 
     const users = await ctx.db.query("users").collect();
@@ -165,13 +169,18 @@ export const dashboardStats = query({
     const engagements = await ctx.db.query("engagements").collect();
 
     const totalUsers = users.length;
-    const activeSubscriptions = subscriptions.filter((s) => s.status === "active").length;
+    const activeSubscriptions = subscriptions.filter(
+      s => s.status === "active",
+    ).length;
     const totalEngagements = engagements.length;
-    const totalSessionsUsed = subscriptions.reduce((sum, s) => sum + (s.sessionsUsed || 0), 0);
+    const totalSessionsUsed = subscriptions.reduce(
+      (sum, s) => sum + (s.sessionsUsed || 0),
+      0,
+    );
 
     // Plan breakdown
     const planBreakdown = { free: 0, starter: 0, premium: 0, none: 0 };
-    const subByUser = new Map(subscriptions.map((s) => [s.userId.toString(), s]));
+    const subByUser = new Map(subscriptions.map(s => [s.userId.toString(), s]));
     for (const u of users) {
       const sub = subByUser.get(u._id.toString());
       if (sub) {
@@ -190,7 +199,9 @@ export const dashboardStats = query({
 
     // Recent signups (last 7 days)
     const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const recentSignups = users.filter((u) => u._creationTime > oneWeekAgo).length;
+    const recentSignups = users.filter(
+      u => u._creationTime > oneWeekAgo,
+    ).length;
 
     return {
       totalUsers,
@@ -210,8 +221,45 @@ export const dashboardStats = query({
  */
 export const getPlatformAiConfigs = internalQuery({
   args: {},
-  handler: async (ctx) => {
+  handler: async ctx => {
     return await ctx.db.query("platformAiConfig").collect();
+  },
+});
+
+/**
+ * Update a user's session usage and/or limit.
+ */
+export const updateUserSessions = mutation({
+  args: {
+    userId: v.id("users"),
+    sessionsUsed: v.optional(v.number()),
+    sessionsLimit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
+    const sub = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
+      .unique();
+
+    if (!sub) {
+      throw new Error("User has no subscription");
+    }
+
+    const updates: Record<string, number> = {};
+    if (args.sessionsUsed !== undefined) {
+      updates.sessionsUsed = args.sessionsUsed;
+    }
+    if (args.sessionsLimit !== undefined) {
+      updates.sessionsLimit = args.sessionsLimit;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await ctx.db.patch(sub._id, updates);
+    }
+
+    return { success: true };
   },
 });
 
@@ -220,7 +268,7 @@ export const getPlatformAiConfigs = internalQuery({
  */
 export const isAdmin = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async ctx => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return false;
     const user = await ctx.db.get(userId);

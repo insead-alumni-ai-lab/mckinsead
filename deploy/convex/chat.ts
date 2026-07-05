@@ -4,11 +4,12 @@
  * Uses shared LLM utilities from llm.ts (#4).
  * Sanitizes user inputs before LLM calls (#6).
  */
-import { v } from "convex/values";
-import { query, mutation, action } from "./_generated/server";
-import { api } from "./_generated/api";
+
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { resolveAiConfig, callLLMChat, sanitizeForLLM } from "./llm";
+import { v } from "convex/values";
+import { api } from "./_generated/api";
+import { action, mutation, query } from "./_generated/server";
+import { callLLMChat, resolveAiConfig, sanitizeForLLM } from "./llm";
 
 // ─── Queries ──────────────────────────────────────────────────────────
 
@@ -23,7 +24,9 @@ export const list = query({
 
     return await ctx.db
       .query("chatMessages")
-      .withIndex("by_engagementId", (q) => q.eq("engagementId", args.engagementId))
+      .withIndex("by_engagementId", q =>
+        q.eq("engagementId", args.engagementId),
+      )
       .collect();
   },
 });
@@ -36,7 +39,11 @@ export const list = query({
 export const addMessage = mutation({
   args: {
     engagementId: v.id("engagements"),
-    role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),
+    role: v.union(
+      v.literal("user"),
+      v.literal("assistant"),
+      v.literal("system"),
+    ),
     content: v.string(),
     stage: v.optional(v.string()),
   },
@@ -62,7 +69,9 @@ export const clearHistory = mutation({
 
     const messages = await ctx.db
       .query("chatMessages")
-      .withIndex("by_engagementId", (q) => q.eq("engagementId", args.engagementId))
+      .withIndex("by_engagementId", q =>
+        q.eq("engagementId", args.engagementId),
+      )
       .collect();
 
     for (const msg of messages) {
@@ -102,13 +111,18 @@ export const sendMessage = action({
       });
 
       // 2. Get engagement context
-      const engagement = await ctx.runQuery(api.engagements.get, { id: args.engagementId });
+      const engagement = await ctx.runQuery(api.engagements.get, {
+        id: args.engagementId,
+      });
       if (!engagement) throw new Error("Engagement not found");
 
       // 3. Get all framework data for context
-      const frameworkData = await ctx.runQuery(api.frameworkData.listByEngagement, {
-        engagementId: args.engagementId,
-      });
+      const frameworkData = await ctx.runQuery(
+        api.frameworkData.listByEngagement,
+        {
+          engagementId: args.engagementId,
+        },
+      );
 
       // 4. Get chat history (last 20 messages for context window)
       const allMessages = await ctx.runQuery(api.chat.list, {
@@ -120,10 +134,18 @@ export const sendMessage = action({
       let crossEngagementContext = "";
       try {
         const allEngagements = await ctx.runQuery(api.engagements.list, {});
-        const otherEngagements = allEngagements.filter((e: { _id: string }) => e._id !== args.engagementId).slice(0, 5);
+        const otherEngagements = allEngagements
+          .filter((e: { _id: string }) => e._id !== args.engagementId)
+          .slice(0, 5);
         if (otherEngagements.length > 0) {
-          const summaries = otherEngagements.map((e: { company: string; industry: string; stage: string; progress: number }) =>
-            `- ${e.company} (${e.industry}): ${e.stage} stage, ${e.progress}% complete`
+          const summaries = otherEngagements.map(
+            (e: {
+              company: string;
+              industry: string;
+              stage: string;
+              progress: number;
+            }) =>
+              `- ${e.company} (${e.industry}): ${e.stage} stage, ${e.progress}% complete`,
           );
           crossEngagementContext = `\n\n## Other Active Engagements (for cross-reference)\n${summaries.join("\n")}`;
         }
@@ -132,13 +154,19 @@ export const sendMessage = action({
       }
 
       // 5. Build system prompt (with cross-engagement memory)
-      const systemPrompt = buildSystemPrompt(engagement, frameworkData, args.stage, args.researchMode) + crossEngagementContext;
+      const systemPrompt =
+        buildSystemPrompt(
+          engagement,
+          frameworkData,
+          args.stage,
+          args.researchMode,
+        ) + crossEngagementContext;
 
       // 6. Resolve AI config via shared utility (#4)
       const aiConfig = await resolveAiConfig(ctx, engagement.userId);
 
       // 7. Build message array for API
-      const apiMessages = recentMessages.map((m) => ({
+      const apiMessages = recentMessages.map(m => ({
         role: m.role as "user" | "assistant" | "system",
         content: m.content,
       }));
@@ -172,7 +200,14 @@ interface FrameworkDataItem {
 }
 
 function buildSystemPrompt(
-  engagement: { company: string; industry: string; question?: string | null; geographies?: string | null; competitors?: string | null; stage: string },
+  engagement: {
+    company: string;
+    industry: string;
+    question?: string | null;
+    geographies?: string | null;
+    competitors?: string | null;
+    stage: string;
+  },
   frameworkData: FrameworkDataItem[],
   currentStage?: string,
   researchMode?: boolean,
@@ -181,8 +216,8 @@ function buildSystemPrompt(
 
   // Summarize framework data
   const fwSummary = frameworkData
-    .filter((f) => f.status === "done" && f.data !== "{}")
-    .map((f) => {
+    .filter(f => f.status === "done" && f.data !== "{}")
+    .map(f => {
       try {
         const parsed = JSON.parse(f.data);
         return `### ${f.framework.toUpperCase()}\n${JSON.stringify(parsed, null, 1).slice(0, 800)}`;
@@ -217,7 +252,9 @@ ${stageGuidance[stage] || "Help the user with their strategy engagement."}
 
 ${fwSummary ? `## Framework Analyses Available\n${fwSummary}` : "## No framework analyses generated yet."}
 
-${researchMode ? `## 🔍 RESEARCH MODE ACTIVE
+${
+  researchMode
+    ? `## 🔍 RESEARCH MODE ACTIVE
 You are now in Research Mode. The user wants external data and market intelligence. Provide:
 - Industry market size, growth rates, and trends (cite approximate figures and sources like Statista, IBISWorld, McKinsey Global Institute, Gartner, etc.)
 - Competitive landscape data (market share, key players, recent M&A)
@@ -229,10 +266,12 @@ You are now in Research Mode. The user wants external data and market intelligen
 - Structure your response with clear headers and data points
 - Provide specific numbers wherever possible, even if approximate
 - Suggest the user verify critical data points with live sources
-` : `
+`
+    : `
 ## Data Enrichment
 When the user asks about market data, competitor info, or industry trends, suggest enabling Research Mode (the toggle in the chat) for richer, data-driven responses.
-`}
+`
+}
 ## Communication Style
 - Be concise but substantive — like a partner in a case interview
 - Use bullet points for key insights

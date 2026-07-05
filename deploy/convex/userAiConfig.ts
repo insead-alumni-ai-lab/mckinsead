@@ -4,9 +4,10 @@
  * Users configure their own provider credentials from the Settings page.
  * Keys are stored server-side in Convex (encrypted at rest by Convex).
  */
-import { v } from "convex/values";
-import { mutation, query, internalQuery } from "./_generated/server";
+
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { v } from "convex/values";
+import { internalQuery, mutation, query } from "./_generated/server";
 
 /**
  * List all AI configs for the current user.
@@ -21,18 +22,18 @@ export const list = query({
       apiKeySet: v.boolean(),
       model: v.optional(v.string()),
       baseUrl: v.optional(v.string()),
-    })
+    }),
   ),
-  handler: async (ctx) => {
+  handler: async ctx => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
 
     const configs = await ctx.db
       .query("userAiConfig")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .withIndex("by_userId", q => q.eq("userId", userId))
       .collect();
 
-    return configs.map((c) => ({
+    return configs.map(c => ({
       _id: c._id,
       _creationTime: c._creationTime,
       provider: c.provider,
@@ -60,8 +61,8 @@ export const save = mutation({
     // Find existing config for this provider
     const existing = await ctx.db
       .query("userAiConfig")
-      .withIndex("by_userId_provider", (q) =>
-        q.eq("userId", userId).eq("provider", args.provider)
+      .withIndex("by_userId_provider", q =>
+        q.eq("userId", userId).eq("provider", args.provider),
       )
       .unique();
 
@@ -97,8 +98,8 @@ export const remove = mutation({
 
     const existing = await ctx.db
       .query("userAiConfig")
-      .withIndex("by_userId_provider", (q) =>
-        q.eq("userId", userId).eq("provider", args.provider)
+      .withIndex("by_userId_provider", q =>
+        q.eq("userId", userId).eq("provider", args.provider),
       )
       .unique();
 
@@ -120,8 +121,8 @@ export const getForUser = internalQuery({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("userAiConfig")
-      .withIndex("by_userId_provider", (q) =>
-        q.eq("userId", args.userId).eq("provider", args.provider)
+      .withIndex("by_userId_provider", q =>
+        q.eq("userId", args.userId).eq("provider", args.provider),
       )
       .unique();
   },
@@ -138,7 +139,7 @@ export const listForUser = internalQuery({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("userAiConfig")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", q => q.eq("userId", args.userId))
       .collect();
   },
 });

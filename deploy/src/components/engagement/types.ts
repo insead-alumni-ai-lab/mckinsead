@@ -1,8 +1,23 @@
 import type { Id } from "../../../convex/_generated/dataModel";
 
-export type Stage = "scoping" | "frameworks" | "hypothesis" | "analysis" | "synthesis" | "communication" | "export";
+export type Stage =
+  | "scoping"
+  | "frameworks"
+  | "hypothesis"
+  | "analysis"
+  | "synthesis"
+  | "communication"
+  | "export";
 
-export type FrameworkTab = "swot" | "pestel" | "porter5" | "bcg" | "ansoff" | "sipoc" | "value_chain" | "root_cause";
+export type FrameworkTab =
+  | "swot"
+  | "pestel"
+  | "porter5"
+  | "bcg"
+  | "ansoff"
+  | "sipoc"
+  | "value_chain"
+  | "root_cause";
 
 export interface EngagementData {
   _id: Id<"engagements">;

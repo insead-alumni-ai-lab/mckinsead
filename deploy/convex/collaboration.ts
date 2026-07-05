@@ -2,9 +2,10 @@
  * Team Collaboration & Sharing (#1)
  * Share engagements via invite links, manage access.
  */
+
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
 
 /** List shared links for an engagement. */
 export const listShares = query({
@@ -14,7 +15,7 @@ export const listShares = query({
     if (!userId) return [];
     return await ctx.db
       .query("shares")
-      .withIndex("by_engagementId", (q) => q.eq("engagementId", engagementId))
+      .withIndex("by_engagementId", q => q.eq("engagementId", engagementId))
       .collect();
   },
 });
@@ -23,17 +24,24 @@ export const listShares = query({
 export const createShare = mutation({
   args: {
     engagementId: v.id("engagements"),
-    role: v.union(v.literal("viewer"), v.literal("editor"), v.literal("commenter")),
+    role: v.union(
+      v.literal("viewer"),
+      v.literal("editor"),
+      v.literal("commenter"),
+    ),
     email: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
     const engagement = await ctx.db.get(args.engagementId);
-    if (!engagement || engagement.userId !== userId) throw new Error("Not authorized");
+    if (!engagement || engagement.userId !== userId)
+      throw new Error("Not authorized");
 
-    const token = Array.from({ length: 32 }, () =>
-      "abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random() * 36)]
+    const token = Array.from(
+      { length: 32 },
+      () =>
+        "abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random() * 36)],
     ).join("");
 
     return await ctx.db.insert("shares", {
@@ -63,7 +71,7 @@ export const revokeShare = mutation({
 /** Get engagements shared with current user. */
 export const sharedWithMe = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async ctx => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
     const user = await ctx.db.get(userId);
@@ -72,8 +80,8 @@ export const sharedWithMe = query({
     if (!email) return [];
     const shares = await ctx.db
       .query("shares")
-      .withIndex("by_sharedWithEmail", (q) => q.eq("sharedWithEmail", email))
-      .filter((q) => q.eq(q.field("active"), true))
+      .withIndex("by_sharedWithEmail", q => q.eq("sharedWithEmail", email))
+      .filter(q => q.eq(q.field("active"), true))
       .collect();
     return shares;
   },

@@ -1,7 +1,7 @@
 import { httpRouter } from "convex/server";
-import { auth } from "./auth";
-import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { httpAction } from "./_generated/server";
+import { auth } from "./auth";
 
 const http = httpRouter();
 auth.addHttpRoutes(http);
@@ -10,14 +10,14 @@ auth.addHttpRoutes(http);
 async function verifyStripeSignature(
   body: string,
   sigHeader: string | null,
-  secret: string
+  secret: string,
 ): Promise<boolean> {
   if (!sigHeader) return false;
   const parts = Object.fromEntries(
-    sigHeader.split(",").map((p) => {
+    sigHeader.split(",").map(p => {
       const [k, v] = p.split("=");
       return [k, v];
-    })
+    }),
   );
   const timestamp = parts["t"];
   const expectedSig = parts["v1"];
@@ -34,11 +34,11 @@ async function verifyStripeSignature(
     enc.encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
-    ["sign"]
+    ["sign"],
   );
   const sig = await crypto.subtle.sign("HMAC", key, enc.encode(payload));
   const hex = Array.from(new Uint8Array(sig))
-    .map((b) => b.toString(16).padStart(2, "0"))
+    .map(b => b.toString(16).padStart(2, "0"))
     .join("");
   return hex === expectedSig;
 }

@@ -8,7 +8,11 @@ const schema = defineSchema({
   // Subscription & billing
   subscriptions: defineTable({
     userId: v.id("users"),
-    plan: v.union(v.literal("free"), v.literal("starter"), v.literal("premium")),
+    plan: v.union(
+      v.literal("free"),
+      v.literal("starter"),
+      v.literal("premium"),
+    ),
     mode: v.union(v.literal("byok"), v.literal("cloud")),
     stripeCustomerId: v.optional(v.string()),
     stripeSubscriptionId: v.optional(v.string()),
@@ -66,14 +70,13 @@ const schema = defineSchema({
     progress: v.number(),
     template: v.optional(v.string()),
     // Persisted stage data (JSON-stringified)
-    scopingData: v.optional(v.string()),     // SCQA framework
-    hypothesisData: v.optional(v.string()),  // Hypothesis tree
-    synthesisData: v.optional(v.string()),   // Pyramid principle
+    scopingData: v.optional(v.string()), // SCQA framework
+    hypothesisData: v.optional(v.string()), // Hypothesis tree
+    synthesisData: v.optional(v.string()), // Pyramid principle
     communicationData: v.optional(v.string()), // Slide structure
-    gatesApproved: v.optional(v.string()),   // JSON array of approved gates
-    archived: v.optional(v.boolean()),       // Soft-archive flag
-  })
-    .index("by_userId", ["userId"]),
+    gatesApproved: v.optional(v.string()), // JSON array of approved gates
+    archived: v.optional(v.boolean()), // Soft-archive flag
+  }).index("by_userId", ["userId"]),
 
   // AI-generated framework data per engagement
   frameworkData: defineTable({
@@ -97,7 +100,7 @@ const schema = defineSchema({
   auditLog: defineTable({
     userId: v.id("users"),
     engagementId: v.optional(v.id("engagements")),
-    action: v.string(),            // e.g. "engagement.created", "framework.generated", "stage.changed"
+    action: v.string(), // e.g. "engagement.created", "framework.generated", "stage.changed"
     details: v.optional(v.string()), // JSON blob with additional context
     timestamp: v.number(),
   })
@@ -109,28 +112,30 @@ const schema = defineSchema({
     engagementId: v.id("engagements"),
     userId: v.id("users"),
     version: v.number(),
-    label: v.optional(v.string()),  // User-defined label like "Pre-meeting draft"
-    snapshot: v.string(),           // JSON blob of full engagement state
+    label: v.optional(v.string()), // User-defined label like "Pre-meeting draft"
+    snapshot: v.string(), // JSON blob of full engagement state
     createdAt: v.number(),
-  })
-    .index("by_engagementId", ["engagementId"]),
+  }).index("by_engagementId", ["engagementId"]),
 
   // ─── Prompt Library ─────────────────────────────────────
   promptLibrary: defineTable({
     userId: v.id("users"),
     title: v.string(),
     prompt: v.string(),
-    category: v.string(),         // "analysis", "framework", "general", "custom"
-    isDefault: v.optional(v.boolean()),  // System prompts vs user-created
-  })
-    .index("by_userId", ["userId"]),
+    category: v.string(), // "analysis", "framework", "general", "custom"
+    isDefault: v.optional(v.boolean()), // System prompts vs user-created
+  }).index("by_userId", ["userId"]),
 
   // ─── Shares (Team Collaboration) ─────────────────────────
   shares: defineTable({
     engagementId: v.id("engagements"),
     ownerId: v.id("users"),
     sharedWithEmail: v.optional(v.string()),
-    role: v.union(v.literal("viewer"), v.literal("editor"), v.literal("commenter")),
+    role: v.union(
+      v.literal("viewer"),
+      v.literal("editor"),
+      v.literal("commenter"),
+    ),
     token: v.string(),
     active: v.boolean(),
     createdAt: v.number(),
@@ -143,30 +148,32 @@ const schema = defineSchema({
   gamification: defineTable({
     userId: v.id("users"),
     xp: v.number(),
-    badges: v.optional(v.string()),    // JSON array of badge IDs
+    badges: v.optional(v.string()), // JSON array of badge IDs
     streak: v.number(),
     lastAction: v.optional(v.string()),
     lastActionAt: v.optional(v.number()),
-  })
-    .index("by_userId", ["userId"]),
+  }).index("by_userId", ["userId"]),
 
   // ─── User Preferences (persisted settings) ─────────────────
   userPreferences: defineTable({
     userId: v.id("users"),
-    key: v.string(),          // e.g. "brand_name", "lang", "notif_email"
-    value: v.string(),        // JSON-stringified value
+    key: v.string(), // e.g. "brand_name", "lang", "notif_email"
+    value: v.string(), // JSON-stringified value
   })
     .index("by_userId", ["userId"])
     .index("by_userId_key", ["userId", "key"]),
 
   chatMessages: defineTable({
     engagementId: v.id("engagements"),
-    role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),
+    role: v.union(
+      v.literal("user"),
+      v.literal("assistant"),
+      v.literal("system"),
+    ),
     content: v.string(),
     stage: v.optional(v.string()),
     timestamp: v.number(),
-  })
-    .index("by_engagementId", ["engagementId"]),
+  }).index("by_engagementId", ["engagementId"]),
 });
 
 export default schema;

@@ -1,10 +1,11 @@
 /**
  * Audit trail & engagement versioning.
  */
-import { v } from "convex/values";
-import { mutation, query, internalMutation } from "./_generated/server";
-import { internal } from "./_generated/api";
+
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { internalMutation, mutation, query } from "./_generated/server";
 
 // ─── Audit Log ────────────────────────────────────────────────────────
 
@@ -35,7 +36,7 @@ export const listByEngagement = query({
     if (!userId) throw new Error("Not authenticated");
     const logs = await ctx.db
       .query("auditLog")
-      .withIndex("by_engagementId", (q) => q.eq("engagementId", engagementId))
+      .withIndex("by_engagementId", q => q.eq("engagementId", engagementId))
       .collect();
     return logs.sort((a, b) => b.timestamp - a.timestamp);
   },
@@ -49,7 +50,7 @@ export const recentActivity = query({
     if (!userId) return [];
     const logs = await ctx.db
       .query("auditLog")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .withIndex("by_userId", q => q.eq("userId", userId))
       .collect();
     return logs.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit ?? 20);
   },
@@ -72,13 +73,13 @@ export const saveVersion = mutation({
     // Get framework data
     const frameworks = await ctx.db
       .query("frameworkData")
-      .withIndex("by_engagementId", (q) => q.eq("engagementId", engagementId))
+      .withIndex("by_engagementId", q => q.eq("engagementId", engagementId))
       .collect();
 
     // Count existing versions
     const existing = await ctx.db
       .query("engagementVersions")
-      .withIndex("by_engagementId", (q) => q.eq("engagementId", engagementId))
+      .withIndex("by_engagementId", q => q.eq("engagementId", engagementId))
       .collect();
 
     const snapshot = JSON.stringify({
@@ -94,7 +95,7 @@ export const saveVersion = mutation({
         communicationData: eng.communicationData,
         gatesApproved: eng.gatesApproved,
       },
-      frameworks: frameworks.map((f) => ({
+      frameworks: frameworks.map(f => ({
         framework: f.framework,
         data: f.data,
         status: f.status,
@@ -121,10 +122,14 @@ export const saveVersion = mutation({
 
     // Award version_tracker badge after 3+ versions
     if (versionNum >= 3) {
-      await ctx.scheduler.runAfter(0, internal.gamification.internalAwardBadge, {
-        userId,
-        badgeId: "version_tracker",
-      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.gamification.internalAwardBadge,
+        {
+          userId,
+          badgeId: "version_tracker",
+        },
+      );
     }
 
     return { version: versionNum };
@@ -139,14 +144,16 @@ export const listVersions = query({
     if (!userId) throw new Error("Not authenticated");
     const versions = await ctx.db
       .query("engagementVersions")
-      .withIndex("by_engagementId", (q) => q.eq("engagementId", engagementId))
+      .withIndex("by_engagementId", q => q.eq("engagementId", engagementId))
       .collect();
-    return versions.sort((a, b) => b.version - a.version).map((v) => ({
-      _id: v._id,
-      version: v.version,
-      label: v.label,
-      createdAt: v.createdAt,
-    }));
+    return versions
+      .sort((a, b) => b.version - a.version)
+      .map(v => ({
+        _id: v._id,
+        version: v.version,
+        label: v.label,
+        createdAt: v.createdAt,
+      }));
   },
 });
 
@@ -163,7 +170,8 @@ export const restoreVersion = mutation({
     if (!eng || eng.userId !== userId) throw new Error("Not found");
 
     const version = await ctx.db.get(versionId);
-    if (!version || version.engagementId !== engagementId) throw new Error("Version not found");
+    if (!version || version.engagementId !== engagementId)
+      throw new Error("Version not found");
 
     const snap = JSON.parse(version.snapshot);
 
@@ -181,11 +189,13 @@ export const restoreVersion = mutation({
     // Restore framework data
     const currentFrameworks = await ctx.db
       .query("frameworkData")
-      .withIndex("by_engagementId", (q) => q.eq("engagementId", engagementId))
+      .withIndex("by_engagementId", q => q.eq("engagementId", engagementId))
       .collect();
 
     for (const fw of snap.frameworks) {
-      const existing = currentFrameworks.find((f) => f.framework === fw.framework);
+      const existing = currentFrameworks.find(
+        f => f.framework === fw.framework,
+      );
       if (existing) {
         await ctx.db.patch(existing._id, {
           data: fw.data,

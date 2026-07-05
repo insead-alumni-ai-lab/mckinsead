@@ -1,10 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
-import { FaIcon, FA } from "@/components/FaIcon";
-import { ChatSidebar } from "@/components/ChatSidebar";
-import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -15,11 +9,34 @@ import {
   RotateCcw,
   Save,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ChatSidebar } from "@/components/ChatSidebar";
+import { ExportPanel } from "@/components/engagement/ExportPanel";
+import {
+  AnsoffCanvas,
+  BcgCanvas,
+  GenerateAllButton,
+  PestelCanvas,
+  Porter5Canvas,
+  RootCauseCanvas,
+  SipocCanvas,
+  SwotCanvas,
+  ValueChainCanvas,
+} from "@/components/engagement/FrameworkCanvases";
+import { HypothesisPanel } from "@/components/engagement/HypothesisPanel";
+import { ScopingPanel } from "@/components/engagement/ScopingPanel";
+import {
+  AnalysisPanel,
+  CommunicationPanel,
+  SynthesisPanel,
+} from "@/components/engagement/StagePanels";
+// Extracted sub-components (#5 — EngagementPage split)
+import type { FrameworkTab, Stage } from "@/components/engagement/types";
+import { FA, FaIcon } from "@/components/FaIcon";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -28,47 +45,45 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-// Extracted sub-components (#5 — EngagementPage split)
-import type { Stage, FrameworkTab } from "@/components/engagement/types";
-import { ScopingPanel } from "@/components/engagement/ScopingPanel";
-import {
-  GenerateAllButton,
-  SwotCanvas,
-  PestelCanvas,
-  Porter5Canvas,
-  BcgCanvas,
-  AnsoffCanvas,
-  SipocCanvas,
-  ValueChainCanvas,
-  RootCauseCanvas,
-} from "@/components/engagement/FrameworkCanvases";
-import { HypothesisPanel } from "@/components/engagement/HypothesisPanel";
-import { AnalysisPanel, SynthesisPanel, CommunicationPanel } from "@/components/engagement/StagePanels";
-import { ExportPanel } from "@/components/engagement/ExportPanel";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 
 // ─── Stage config ─────────────────────────────────────────────────────────────
 
-const STAGES: Array<{ id: Stage; label: string; icon: string; gate?: string }> = [
-  { id: "scoping", label: "Scope", icon: FA.scope, gate: "G1" },
-  { id: "frameworks", label: "Diagnose", icon: FA.diagnose, gate: "G2" },
-  { id: "hypothesis", label: "Hypothesize", icon: FA.hypothesize, gate: "G3" },
-  { id: "analysis", label: "Analyze", icon: FA.analyze },
-  { id: "synthesis", label: "Synthesize", icon: FA.synthesize, gate: "G4" },
-  { id: "communication", label: "Communicate", icon: FA.communicate, gate: "G5" },
-  { id: "export", label: "Export", icon: FA.export },
-];
+const STAGES: Array<{ id: Stage; label: string; icon: string; gate?: string }> =
+  [
+    { id: "scoping", label: "Scope", icon: FA.scope, gate: "G1" },
+    { id: "frameworks", label: "Diagnose", icon: FA.diagnose, gate: "G2" },
+    {
+      id: "hypothesis",
+      label: "Hypothesize",
+      icon: FA.hypothesize,
+      gate: "G3",
+    },
+    { id: "analysis", label: "Analyze", icon: FA.analyze },
+    { id: "synthesis", label: "Synthesize", icon: FA.synthesize, gate: "G4" },
+    {
+      id: "communication",
+      label: "Communicate",
+      icon: FA.communicate,
+      gate: "G5",
+    },
+    { id: "export", label: "Export", icon: FA.export },
+  ];
 
-const FRAMEWORK_TABS: Array<{ id: FrameworkTab; label: string; icon: string }> = [
-  { id: "swot", label: "SWOT", icon: FA.swot },
-  { id: "pestel", label: "PESTEL", icon: FA.pestel },
-  { id: "porter5", label: "Porter's 5", icon: FA.porter5 },
-  { id: "bcg", label: "BCG", icon: FA.bcg },
-  { id: "ansoff", label: "Ansoff", icon: FA.ansoff },
-  { id: "sipoc", label: "SIPOC", icon: FA.sipoc },
-  { id: "value_chain", label: "Value Chain", icon: FA.valueChain },
-  { id: "root_cause", label: "Root Cause", icon: FA.rootCause },
-];
+const FRAMEWORK_TABS: Array<{ id: FrameworkTab; label: string; icon: string }> =
+  [
+    { id: "swot", label: "SWOT", icon: FA.swot },
+    { id: "pestel", label: "PESTEL", icon: FA.pestel },
+    { id: "porter5", label: "Porter's 5", icon: FA.porter5 },
+    { id: "bcg", label: "BCG", icon: FA.bcg },
+    { id: "ansoff", label: "Ansoff", icon: FA.ansoff },
+    { id: "sipoc", label: "SIPOC", icon: FA.sipoc },
+    { id: "value_chain", label: "Value Chain", icon: FA.valueChain },
+    { id: "root_cause", label: "Root Cause", icon: FA.rootCause },
+  ];
 
 // ─── Main Engagement Page ─────────────────────────────────────────────────────
 
@@ -85,7 +100,9 @@ export function EngagementPage() {
 
   // ─── Load engagement from Convex ─────────────────────────
   const engagement = useQuery(api.engagements.get, { id: engagementId });
-  const frameworkDataList = useQuery(api.frameworkData.listByEngagement, { engagementId });
+  const frameworkDataList = useQuery(api.frameworkData.listByEngagement, {
+    engagementId,
+  });
   const versions = useQuery(api.audit.listVersions, { engagementId });
   const initializeFrameworks = useMutation(api.frameworkData.initializeAll);
   const updateStage = useMutation(api.engagements.updateStage);
@@ -107,19 +124,28 @@ export function EngagementPage() {
   }, [engagement?.stage]);
 
   // Get framework data by type
-  const getFrameworkData = useCallback((fw: string) => {
-    return frameworkDataList?.find((f) => f.framework === fw);
-  }, [frameworkDataList]);
+  const getFrameworkData = useCallback(
+    (fw: string) => {
+      return frameworkDataList?.find(f => f.framework === fw);
+    },
+    [frameworkDataList],
+  );
 
   // Count completed frameworks
-  const completedFrameworks = frameworkDataList?.filter((f) => f.status === "done").length ?? 0;
-  const generatingFrameworks = frameworkDataList?.filter((f) => f.status === "generating").length ?? 0;
+  const completedFrameworks =
+    frameworkDataList?.filter(f => f.status === "done").length ?? 0;
+  const generatingFrameworks =
+    frameworkDataList?.filter(f => f.status === "generating").length ?? 0;
 
   const handleStageChange = (stage: Stage) => {
     setCurrentStage(stage);
-    const stageIndex = STAGES.findIndex((s) => s.id === stage);
+    const stageIndex = STAGES.findIndex(s => s.id === stage);
     const progress = Math.round(((stageIndex + 1) / STAGES.length) * 100);
-    updateStage({ id: engagementId, stage, progress: Math.max(engagement?.progress ?? 0, progress) });
+    updateStage({
+      id: engagementId,
+      stage,
+      progress: Math.max(engagement?.progress ?? 0, progress),
+    });
   };
 
   if (!engagement) {
@@ -134,20 +160,33 @@ export function EngagementPage() {
     <div className="space-y-6">
       {/* Top Bar */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate("/dashboard")}
+        >
           <ArrowLeft className="size-4" />
         </Button>
         <div className="flex-1">
           <h1 className="text-xl font-bold">{engagement.company}</h1>
-          <p className="text-sm text-muted-foreground">{engagement.industry}{engagement.question ? ` — ${engagement.question}` : ""}</p>
+          <p className="text-sm text-muted-foreground">
+            {engagement.industry}
+            {engagement.question ? ` — ${engagement.question}` : ""}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="bg-primary/10 text-primary">
-            {STAGES.find((s) => s.id === currentStage)?.label || currentStage}
+            {STAGES.find(s => s.id === currentStage)?.label || currentStage}
           </Badge>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setShowVersions(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs"
+            onClick={() => setShowVersions(true)}
+          >
             <History className="size-3" />
-            Versions{versions && versions.length > 0 ? ` (${versions.length})` : ""}
+            Versions
+            {versions && versions.length > 0 ? ` (${versions.length})` : ""}
           </Button>
         </div>
       </div>
@@ -169,7 +208,7 @@ export function EngagementPage() {
               <Input
                 placeholder="Version label (optional)"
                 value={versionLabel}
-                onChange={(e) => setVersionLabel(e.target.value)}
+                onChange={e => setVersionLabel(e.target.value)}
                 className="text-sm"
               />
               <Button
@@ -179,7 +218,10 @@ export function EngagementPage() {
                 onClick={async () => {
                   setSavingVersion(true);
                   try {
-                    await saveVersion({ engagementId, label: versionLabel || undefined });
+                    await saveVersion({
+                      engagementId,
+                      label: versionLabel || undefined,
+                    });
                     setVersionLabel("");
                   } catch (err) {
                     console.error("Save version failed:", err);
@@ -188,7 +230,11 @@ export function EngagementPage() {
                   }
                 }}
               >
-                {savingVersion ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />}
+                {savingVersion ? (
+                  <Loader2 className="size-3 animate-spin" />
+                ) : (
+                  <Save className="size-3" />
+                )}
                 Save
               </Button>
             </div>
@@ -199,13 +245,21 @@ export function EngagementPage() {
                   No versions saved yet. Save a snapshot to track your progress.
                 </p>
               )}
-              {versions?.map((ver) => (
-                <div key={ver._id} className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
+              {versions?.map(ver => (
+                <div
+                  key={ver._id}
+                  className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
+                >
                   <div>
                     <div className="text-sm font-medium">{ver.label}</div>
                     <div className="text-[10px] text-muted-foreground flex items-center gap-1">
                       <Clock className="size-2.5" />
-                      {new Date(ver.createdAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      {new Date(ver.createdAt).toLocaleString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </div>
                   </div>
                   <Button
@@ -213,8 +267,15 @@ export function EngagementPage() {
                     size="sm"
                     className="gap-1.5 text-xs"
                     onClick={async () => {
-                      if (confirm(`Restore "${ver.label}"? Current unsaved changes will be overwritten.`)) {
-                        await restoreVersion({ engagementId, versionId: ver._id as Id<"engagementVersions"> });
+                      if (
+                        confirm(
+                          `Restore "${ver.label}"? Current unsaved changes will be overwritten.`,
+                        )
+                      ) {
+                        await restoreVersion({
+                          engagementId,
+                          versionId: ver._id as Id<"engagementVersions">,
+                        });
                         setShowVersions(false);
                       }
                     }}
@@ -227,16 +288,23 @@ export function EngagementPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowVersions(false)}>Close</Button>
+            <Button variant="outline" onClick={() => setShowVersions(false)}>
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Overall Progress Bar */}
       <div className="flex items-center gap-3 text-sm">
-        <span className="text-muted-foreground text-xs font-medium">Progress</span>
+        <span className="text-muted-foreground text-xs font-medium">
+          Progress
+        </span>
         <div className="flex-1 bg-muted rounded-full h-2">
-          <div className="bg-primary rounded-full h-2 transition-all duration-500" style={{ width: `${engagement.progress}%` }} />
+          <div
+            className="bg-primary rounded-full h-2 transition-all duration-500"
+            style={{ width: `${engagement.progress}%` }}
+          />
         </div>
         <span className="text-xs font-semibold">{engagement.progress}%</span>
       </div>
@@ -247,11 +315,13 @@ export function EngagementPage() {
           <div className="flex items-center gap-1 overflow-x-auto">
             {STAGES.map((stage, i) => {
               const isCurrent = stage.id === currentStage;
-              const isPast = STAGES.findIndex((s) => s.id === currentStage) > i;
+              const isPast = STAGES.findIndex(s => s.id === currentStage) > i;
               return (
                 <div key={stage.id} className="flex items-center">
                   {i > 0 && (
-                    <div className={`w-6 h-px mx-1 ${isPast ? "bg-primary" : "bg-border"}`} />
+                    <div
+                      className={`w-6 h-px mx-1 ${isPast ? "bg-primary" : "bg-border"}`}
+                    />
                   )}
                   <button
                     onClick={() => handleStageChange(stage.id)}
@@ -266,7 +336,9 @@ export function EngagementPage() {
                     <FaIcon icon={stage.icon} className="text-xs" />
                     <span className="hidden sm:inline">{stage.label}</span>
                     {stage.gate && (
-                      <span className={`text-[10px] ml-1 px-1 rounded ${isCurrent ? "bg-primary-foreground/20" : "bg-muted-foreground/10"}`}>
+                      <span
+                        className={`text-[10px] ml-1 px-1 rounded ${isCurrent ? "bg-primary-foreground/20" : "bg-muted-foreground/10"}`}
+                      >
                         {stage.gate}
                       </span>
                     )}
@@ -279,14 +351,16 @@ export function EngagementPage() {
       </Card>
 
       {/* Stage Content */}
-      {currentStage === "scoping" && <ScopingPanel engagement={engagement} engagementId={engagementId} />}
+      {currentStage === "scoping" && (
+        <ScopingPanel engagement={engagement} engagementId={engagementId} />
+      )}
       {currentStage === "frameworks" && (
         <div className="space-y-4">
           {/* Framework Tabs */}
           <Card>
             <CardContent className="py-2">
               <div className="flex flex-wrap gap-1">
-                {FRAMEWORK_TABS.map((fw) => {
+                {FRAMEWORK_TABS.map(fw => {
                   const fwData = getFrameworkData(fw.id);
                   const isDone = fwData?.status === "done";
                   const isGenerating = fwData?.status === "generating";
@@ -302,8 +376,12 @@ export function EngagementPage() {
                     >
                       <FaIcon icon={fw.icon} className="text-xs" />
                       {fw.label}
-                      {isDone && <CheckCircle2 className="size-3 text-green-400" />}
-                      {isGenerating && <Loader2 className="size-3 animate-spin" />}
+                      {isDone && (
+                        <CheckCircle2 className="size-3 text-green-400" />
+                      )}
+                      {isGenerating && (
+                        <Loader2 className="size-3 animate-spin" />
+                      )}
                     </button>
                   );
                 })}
@@ -311,27 +389,82 @@ export function EngagementPage() {
               <div className="flex items-center justify-between mt-2 pt-2 border-t">
                 <span className="text-xs text-muted-foreground">
                   {completedFrameworks}/8 frameworks completed
-                  {generatingFrameworks > 0 && ` · ${generatingFrameworks} generating...`}
+                  {generatingFrameworks > 0 &&
+                    ` · ${generatingFrameworks} generating...`}
                 </span>
                 <GenerateAllButton engagementId={engagementId} />
               </div>
             </CardContent>
           </Card>
-          {activeFramework === "swot" && <SwotCanvas engagementId={engagementId} data={getFrameworkData("swot")} />}
-          {activeFramework === "pestel" && <PestelCanvas engagementId={engagementId} data={getFrameworkData("pestel")} />}
-          {activeFramework === "porter5" && <Porter5Canvas engagementId={engagementId} data={getFrameworkData("porter5")} />}
-          {activeFramework === "bcg" && <BcgCanvas engagementId={engagementId} data={getFrameworkData("bcg")} />}
-          {activeFramework === "ansoff" && <AnsoffCanvas engagementId={engagementId} data={getFrameworkData("ansoff")} />}
-          {activeFramework === "sipoc" && <SipocCanvas engagementId={engagementId} data={getFrameworkData("sipoc")} />}
-          {activeFramework === "value_chain" && <ValueChainCanvas engagementId={engagementId} data={getFrameworkData("value_chain")} />}
-          {activeFramework === "root_cause" && <RootCauseCanvas engagementId={engagementId} data={getFrameworkData("root_cause")} />}
+          {activeFramework === "swot" && (
+            <SwotCanvas
+              engagementId={engagementId}
+              data={getFrameworkData("swot")}
+            />
+          )}
+          {activeFramework === "pestel" && (
+            <PestelCanvas
+              engagementId={engagementId}
+              data={getFrameworkData("pestel")}
+            />
+          )}
+          {activeFramework === "porter5" && (
+            <Porter5Canvas
+              engagementId={engagementId}
+              data={getFrameworkData("porter5")}
+            />
+          )}
+          {activeFramework === "bcg" && (
+            <BcgCanvas
+              engagementId={engagementId}
+              data={getFrameworkData("bcg")}
+            />
+          )}
+          {activeFramework === "ansoff" && (
+            <AnsoffCanvas
+              engagementId={engagementId}
+              data={getFrameworkData("ansoff")}
+            />
+          )}
+          {activeFramework === "sipoc" && (
+            <SipocCanvas
+              engagementId={engagementId}
+              data={getFrameworkData("sipoc")}
+            />
+          )}
+          {activeFramework === "value_chain" && (
+            <ValueChainCanvas
+              engagementId={engagementId}
+              data={getFrameworkData("value_chain")}
+            />
+          )}
+          {activeFramework === "root_cause" && (
+            <RootCauseCanvas
+              engagementId={engagementId}
+              data={getFrameworkData("root_cause")}
+            />
+          )}
         </div>
       )}
-      {currentStage === "hypothesis" && <HypothesisPanel engagement={engagement} engagementId={engagementId} frameworkDataList={frameworkDataList ?? []} />}
+      {currentStage === "hypothesis" && (
+        <HypothesisPanel
+          engagement={engagement}
+          engagementId={engagementId}
+          frameworkDataList={frameworkDataList ?? []}
+        />
+      )}
       {currentStage === "analysis" && <AnalysisPanel />}
-      {currentStage === "synthesis" && <SynthesisPanel engagement={engagement} engagementId={engagementId} />}
+      {currentStage === "synthesis" && (
+        <SynthesisPanel engagement={engagement} engagementId={engagementId} />
+      )}
       {currentStage === "communication" && <CommunicationPanel />}
-      {currentStage === "export" && <ExportPanel engagement={engagement} engagementId={engagementId} frameworkDataList={frameworkDataList ?? []} />}
+      {currentStage === "export" && (
+        <ExportPanel
+          engagement={engagement}
+          engagementId={engagementId}
+          frameworkDataList={frameworkDataList ?? []}
+        />
+      )}
 
       {/* Chat FAB */}
       {!chatOpen && (

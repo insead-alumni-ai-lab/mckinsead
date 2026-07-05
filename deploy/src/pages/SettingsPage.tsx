@@ -1,13 +1,13 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import {
+  Bell,
   Bot,
   Check,
-  Bell,
   ChevronRight,
+  Cloud,
   CreditCard,
   Crown,
-  Cloud,
   ExternalLink,
   Eye,
   EyeOff,
@@ -23,6 +23,7 @@ import {
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -36,7 +37,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { useTheme } from "@/contexts/ThemeContext";
 import { api } from "../../convex/_generated/api";
 
@@ -92,7 +92,9 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [passwordStep, setPasswordStep] = useState<"request" | "verify">("request");
+  const [passwordStep, setPasswordStep] = useState<"request" | "verify">(
+    "request",
+  );
 
   // User preferences (DB-persisted, #7)
   const dbPrefs = useQuery(api.userPreferences.getAll) ?? {};
@@ -100,15 +102,33 @@ export function SettingsPage() {
   const getPref = (key: string, fallback: string) => dbPrefs[key] ?? fallback;
 
   // AI provider form states
-  const [providerForms, setProviderForms] = useState<Record<ProviderName, ProviderFormState>>({
-    anthropic: { apiKey: "", model: "", baseUrl: "", showKey: false, saving: false, saved: false, removing: false },
-    openai: { apiKey: "", model: "", baseUrl: "", showKey: false, saving: false, saved: false, removing: false },
+  const [providerForms, setProviderForms] = useState<
+    Record<ProviderName, ProviderFormState>
+  >({
+    anthropic: {
+      apiKey: "",
+      model: "",
+      baseUrl: "",
+      showKey: false,
+      saving: false,
+      saved: false,
+      removing: false,
+    },
+    openai: {
+      apiKey: "",
+      model: "",
+      baseUrl: "",
+      showKey: false,
+      saving: false,
+      saved: false,
+      removing: false,
+    },
   });
 
   // Sync existing configs into form state
   useEffect(() => {
     if (userAiConfigs.length > 0) {
-      setProviderForms((prev) => {
+      setProviderForms(prev => {
         const next = { ...prev };
         for (const cfg of userAiConfigs) {
           const p = cfg.provider as ProviderName;
@@ -124,8 +144,11 @@ export function SettingsPage() {
     }
   }, [userAiConfigs]);
 
-  const updateProviderForm = (provider: ProviderName, updates: Partial<ProviderFormState>) => {
-    setProviderForms((prev) => ({
+  const updateProviderForm = (
+    provider: ProviderName,
+    updates: Partial<ProviderFormState>,
+  ) => {
+    setProviderForms(prev => ({
       ...prev,
       [provider]: { ...prev[provider], ...updates },
     }));
@@ -135,7 +158,7 @@ export function SettingsPage() {
     const form = providerForms[provider];
     if (!form.apiKey.trim() || form.apiKey === "••••••••••••••••") {
       // If key is masked and user hasn't changed it, skip
-      const existingCfg = userAiConfigs.find((c) => c.provider === provider);
+      const existingCfg = userAiConfigs.find(c => c.provider === provider);
       if (existingCfg?.apiKeySet && form.apiKey === "••••••••••••••••") {
         // Only updating model/baseUrl — we need a real key though
         // For now, we can't patch without re-entering the key
@@ -234,8 +257,12 @@ export function SettingsPage() {
   return (
     <div className="space-y-8 max-w-2xl mx-auto">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-1">Manage your account and preferences</p>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+          Settings
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Manage your account and preferences
+        </p>
       </div>
 
       {/* Profile card */}
@@ -245,7 +272,9 @@ export function SettingsPage() {
           <div className="flex items-end gap-4">
             <Avatar className="size-16 border-4 border-background shadow-lg">
               <AvatarFallback className="text-xl bg-primary text-primary-foreground">
-                {user?.name?.charAt(0).toUpperCase() || <User className="size-6" />}
+                {user?.name?.charAt(0).toUpperCase() || (
+                  <User className="size-6" />
+                )}
               </AvatarFallback>
             </Avatar>
             <div className="pb-1">
@@ -299,8 +328,11 @@ export function SettingsPage() {
                     </span>
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {subscription.mode === "byok" ? "Bring Your Own Key" : "Cloud AI"} ·{" "}
-                    {subscription.sessionsUsed} / {subscription.sessionsLimit} sessions used this month
+                    {subscription.mode === "byok"
+                      ? "Bring Your Own Key"
+                      : "Cloud AI"}{" "}
+                    · {subscription.sessionsUsed} / {subscription.sessionsLimit}{" "}
+                    sessions used this month
                   </p>
                 </div>
               </div>
@@ -330,7 +362,9 @@ export function SettingsPage() {
               )}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground px-4">No active subscription</p>
+            <p className="text-sm text-muted-foreground px-4">
+              No active subscription
+            </p>
           )}
         </CardContent>
       </Card>
@@ -343,14 +377,17 @@ export function SettingsPage() {
             AI Providers
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Configure your API keys and model preferences. Keys are stored securely on the server.
+            Configure your API keys and model preferences. Keys are stored
+            securely on the server.
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
-          {(["anthropic", "openai"] as const).map((provider) => {
+          {(["anthropic", "openai"] as const).map(provider => {
             const meta = PROVIDER_DEFAULTS[provider];
             const form = providerForms[provider];
-            const existingCfg = userAiConfigs.find((c) => c.provider === provider);
+            const existingCfg = userAiConfigs.find(
+              c => c.provider === provider,
+            );
             const isConfigured = !!existingCfg?.apiKeySet;
 
             return (
@@ -371,7 +408,10 @@ export function SettingsPage() {
                       <p className="font-medium text-sm">
                         {meta.label}
                         {isConfigured && (
-                          <Badge variant="secondary" className="ml-2 bg-green-500/15 text-green-600 dark:text-green-400 text-[10px]">
+                          <Badge
+                            variant="secondary"
+                            className="ml-2 bg-green-500/15 text-green-600 dark:text-green-400 text-[10px]"
+                          >
                             Connected
                           </Badge>
                         )}
@@ -408,8 +448,10 @@ export function SettingsPage() {
                         type={form.showKey ? "text" : "password"}
                         placeholder={meta.keyPlaceholder}
                         value={form.apiKey}
-                        onChange={(e) =>
-                          updateProviderForm(provider, { apiKey: e.target.value })
+                        onChange={e =>
+                          updateProviderForm(provider, {
+                            apiKey: e.target.value,
+                          })
                         }
                         onFocus={() => {
                           if (form.apiKey === "••••••••••••••••") {
@@ -422,11 +464,17 @@ export function SettingsPage() {
                         type="button"
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                         onClick={() =>
-                          updateProviderForm(provider, { showKey: !form.showKey })
+                          updateProviderForm(provider, {
+                            showKey: !form.showKey,
+                          })
                         }
                         tabIndex={-1}
                       >
-                        {form.showKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        {form.showKey ? (
+                          <EyeOff className="size-4" />
+                        ) : (
+                          <Eye className="size-4" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -437,8 +485,10 @@ export function SettingsPage() {
                         type="text"
                         placeholder={meta.defaultModel}
                         value={form.model}
-                        onChange={(e) =>
-                          updateProviderForm(provider, { model: e.target.value })
+                        onChange={e =>
+                          updateProviderForm(provider, {
+                            model: e.target.value,
+                          })
                         }
                         className="text-sm"
                       />
@@ -449,8 +499,10 @@ export function SettingsPage() {
                         type="text"
                         placeholder={meta.defaultBaseUrl}
                         value={form.baseUrl}
-                        onChange={(e) =>
-                          updateProviderForm(provider, { baseUrl: e.target.value })
+                        onChange={e =>
+                          updateProviderForm(provider, {
+                            baseUrl: e.target.value,
+                          })
                         }
                         className="text-sm"
                       />
@@ -484,8 +536,9 @@ export function SettingsPage() {
             );
           })}
           <p className="text-xs text-muted-foreground px-1">
-            Your API keys are stored securely and only used to make requests on your behalf.
-            Supports custom endpoints (Azure OpenAI, vLLM, Ollama, LiteLLM, etc.) via Base URL.
+            Your API keys are stored securely and only used to make requests on
+            your behalf. Supports custom endpoints (Azure OpenAI, vLLM, Ollama,
+            LiteLLM, etc.) via Base URL.
           </p>
         </CardContent>
       </Card>
@@ -510,13 +563,19 @@ export function SettingsPage() {
                   )}
                 </div>
                 <div>
-                  <Label htmlFor="dark-mode" className="font-medium">Dark mode</Label>
+                  <Label htmlFor="dark-mode" className="font-medium">
+                    Dark mode
+                  </Label>
                   <p className="text-sm text-muted-foreground">
                     Switch between light and dark themes
                   </p>
                 </div>
               </div>
-              <Switch id="dark-mode" checked={theme === "dark"} onCheckedChange={toggleTheme} />
+              <Switch
+                id="dark-mode"
+                checked={theme === "dark"}
+                onCheckedChange={toggleTheme}
+              />
             </div>
           ) : (
             <p className="text-sm text-muted-foreground px-4 py-2">
@@ -540,10 +599,14 @@ export function SettingsPage() {
               <div className="size-2.5 rounded-full bg-amber-500 animate-pulse" />
               <div>
                 <p className="font-medium text-sm">mckinsead.com</p>
-                <p className="text-sm text-muted-foreground">Configuration pending</p>
+                <p className="text-sm text-muted-foreground">
+                  Configuration pending
+                </p>
               </div>
             </div>
-            <span className="text-xs px-2 py-1 rounded-full bg-amber-500/10 text-amber-600 font-medium">Pending</span>
+            <span className="text-xs px-2 py-1 rounded-full bg-amber-500/10 text-amber-600 font-medium">
+              Pending
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -558,7 +621,8 @@ export function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
-            Generate API keys to integrate mckinsead with external tools and workflows.
+            Generate API keys to integrate mckinsead with external tools and
+            workflows.
           </div>
           <div className="space-y-2">
             <Label>API Key</Label>
@@ -568,7 +632,9 @@ export function SettingsPage() {
                 readOnly
                 className="text-sm font-mono"
               />
-              <Button variant="outline" size="sm">Regenerate</Button>
+              <Button variant="outline" size="sm">
+                Regenerate
+              </Button>
             </div>
           </div>
           <div className="space-y-2">
@@ -577,9 +643,14 @@ export function SettingsPage() {
               placeholder="https://your-server.com/webhook"
               className="text-sm"
             />
-            <p className="text-[10px] text-muted-foreground">Receive POST requests when engagements change stage or AI analyses complete.</p>
+            <p className="text-[10px] text-muted-foreground">
+              Receive POST requests when engagements change stage or AI analyses
+              complete.
+            </p>
           </div>
-          <Badge variant="secondary" className="text-[10px]">Premium Feature</Badge>
+          <Badge variant="secondary" className="text-[10px]">
+            Premium Feature
+          </Badge>
         </CardContent>
       </Card>
 
@@ -601,7 +672,9 @@ export function SettingsPage() {
               <Input
                 placeholder="Your Company"
                 value={getPref("brand_name", "")}
-                onChange={(e) => setPref({ key: "brand_name", value: e.target.value })}
+                onChange={e =>
+                  setPref({ key: "brand_name", value: e.target.value })
+                }
                 className="text-sm"
               />
             </div>
@@ -610,7 +683,9 @@ export function SettingsPage() {
               <Input
                 type="color"
                 value={getPref("brand_color", "#1a237e")}
-                onChange={(e) => setPref({ key: "brand_color", value: e.target.value })}
+                onChange={e =>
+                  setPref({ key: "brand_color", value: e.target.value })
+                }
                 className="h-9 w-full cursor-pointer"
               />
             </div>
@@ -620,11 +695,15 @@ export function SettingsPage() {
             <Input
               placeholder="https://example.com/logo.png"
               value={getPref("brand_logo", "")}
-              onChange={(e) => setPref({ key: "brand_logo", value: e.target.value })}
+              onChange={e =>
+                setPref({ key: "brand_logo", value: e.target.value })
+              }
               className="text-sm"
             />
           </div>
-          <Badge variant="secondary" className="text-[10px]">Premium Feature</Badge>
+          <Badge variant="secondary" className="text-[10px]">
+            Premium Feature
+          </Badge>
         </CardContent>
       </Card>
 
@@ -632,7 +711,19 @@ export function SettingsPage() {
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-base">
-            <svg className="size-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <svg
+              className="size-4 text-muted-foreground"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="2" y1="12" x2="22" y2="12" />
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+            </svg>
             Language & Region
           </CardTitle>
         </CardHeader>
@@ -642,7 +733,7 @@ export function SettingsPage() {
             <select
               className="w-full h-9 rounded-md border bg-background px-3 text-sm"
               value={getPref("lang", "en")}
-              onChange={(e) => setPref({ key: "lang", value: e.target.value })}
+              onChange={e => setPref({ key: "lang", value: e.target.value })}
             >
               <option value="en">English</option>
               <option value="fr">Français</option>
@@ -658,7 +749,7 @@ export function SettingsPage() {
             <select
               className="w-full h-9 rounded-md border bg-background px-3 text-sm"
               value={getPref("ai_lang", "en")}
-              onChange={(e) => setPref({ key: "ai_lang", value: e.target.value })}
+              onChange={e => setPref({ key: "ai_lang", value: e.target.value })}
             >
               <option value="en">English (default)</option>
               <option value="fr">Français</option>
@@ -668,7 +759,10 @@ export function SettingsPage() {
               <option value="ja">日本語</option>
               <option value="ar">العربية</option>
             </select>
-            <p className="text-[10px] text-muted-foreground">AI will respond in the selected language while maintaining strategy terminology.</p>
+            <p className="text-[10px] text-muted-foreground">
+              AI will respond in the selected language while maintaining
+              strategy terminology.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -683,15 +777,34 @@ export function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {[
-            { id: "engagement_complete", label: "Engagement completed", desc: "When all stages are finished", defaultOn: true },
-            { id: "ai_generation", label: "AI analysis ready", desc: "When framework generation finishes", defaultOn: true },
-            { id: "weekly_summary", label: "Weekly summary", desc: "Digest of engagement progress", defaultOn: false },
-          ].map((notif) => {
+            {
+              id: "engagement_complete",
+              label: "Engagement completed",
+              desc: "When all stages are finished",
+              defaultOn: true,
+            },
+            {
+              id: "ai_generation",
+              label: "AI analysis ready",
+              desc: "When framework generation finishes",
+              defaultOn: true,
+            },
+            {
+              id: "weekly_summary",
+              label: "Weekly summary",
+              desc: "Digest of engagement progress",
+              defaultOn: false,
+            },
+          ].map(notif => {
             const prefKey = `notif_${notif.id}`;
             const prefVal = dbPrefs[prefKey];
-            const isOn = prefVal !== undefined ? prefVal === "1" : notif.defaultOn;
+            const isOn =
+              prefVal !== undefined ? prefVal === "1" : notif.defaultOn;
             return (
-              <div key={notif.id} className="flex items-center justify-between rounded-lg border p-4">
+              <div
+                key={notif.id}
+                className="flex items-center justify-between rounded-lg border p-4"
+              >
                 <div>
                   <p className="font-medium text-sm">{notif.label}</p>
                   <p className="text-sm text-muted-foreground">{notif.desc}</p>
@@ -702,13 +815,16 @@ export function SettingsPage() {
                   }}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isOn ? "bg-primary" : "bg-muted"}`}
                 >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isOn ? "translate-x-6" : "translate-x-1"}`} />
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isOn ? "translate-x-6" : "translate-x-1"}`}
+                  />
                 </button>
               </div>
             );
           })}
           <p className="text-xs text-muted-foreground text-center pt-1">
-            Email notifications coming soon — preferences are synced to your account.
+            Email notifications coming soon — preferences are synced to your
+            account.
           </p>
         </CardContent>
       </Card>
@@ -728,7 +844,9 @@ export function SettingsPage() {
           >
             <div>
               <p className="font-medium text-sm">Change password</p>
-              <p className="text-sm text-muted-foreground">Update your password</p>
+              <p className="text-sm text-muted-foreground">
+                Update your password
+              </p>
             </div>
             <ChevronRight className="size-4 text-muted-foreground" />
           </button>
@@ -737,8 +855,12 @@ export function SettingsPage() {
             className="w-full flex items-center justify-between rounded-lg border border-destructive/20 p-4 transition-colors hover:bg-destructive/5 text-left"
           >
             <div>
-              <p className="font-medium text-sm text-destructive">Delete account</p>
-              <p className="text-sm text-muted-foreground">Permanently delete your account</p>
+              <p className="font-medium text-sm text-destructive">
+                Delete account
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Permanently delete your account
+              </p>
             </div>
             <ChevronRight className="size-4 text-destructive" />
           </button>
@@ -762,14 +884,24 @@ export function SettingsPage() {
               <div className="py-4">
                 <p className="text-sm text-muted-foreground">
                   A reset code will be sent to:{" "}
-                  <span className="font-medium text-foreground">{user?.email}</span>
+                  <span className="font-medium text-foreground">
+                    {user?.email}
+                  </span>
                 </p>
               </div>
               {error && (
-                <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2 mb-4">{error}</p>
+                <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2 mb-4">
+                  {error}
+                </p>
               )}
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setChangePasswordOpen(false)}>Cancel</Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setChangePasswordOpen(false)}
+                >
+                  Cancel
+                </Button>
                 <Button type="submit" disabled={loading}>
                   {loading && <Loader2 className="size-4 animate-spin" />}
                   Send Code
@@ -780,16 +912,48 @@ export function SettingsPage() {
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="code">Verification Code</Label>
-                <Input id="code" name="code" type="text" placeholder="Enter code from email" autoComplete="one-time-code" required />
+                <Input
+                  id="code"
+                  name="code"
+                  type="text"
+                  placeholder="Enter code from email"
+                  autoComplete="one-time-code"
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="newPassword">New Password</Label>
-                <Input id="newPassword" name="newPassword" type="password" placeholder="••••••••" minLength={6} autoComplete="new-password" required />
+                <Input
+                  id="newPassword"
+                  name="newPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  minLength={6}
+                  autoComplete="new-password"
+                  required
+                />
               </div>
-              {error && <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>}
-              {success && <p className="text-sm text-success bg-success/10 rounded-lg px-3 py-2">{success}</p>}
+              {error && (
+                <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+                  {error}
+                </p>
+              )}
+              {success && (
+                <p className="text-sm text-success bg-success/10 rounded-lg px-3 py-2">
+                  {success}
+                </p>
+              )}
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => { setPasswordStep("request"); setError(""); }}>Back</Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setPasswordStep("request");
+                    setError("");
+                  }}
+                >
+                  Back
+                </Button>
                 <Button type="submit" disabled={loading}>
                   {loading && <Loader2 className="size-4 animate-spin" />}
                   Change Password
@@ -806,16 +970,32 @@ export function SettingsPage() {
           <DialogHeader>
             <DialogTitle>Delete Account</DialogTitle>
             <DialogDescription>
-              This action cannot be undone. This will permanently delete your account and remove all your data.
+              This action cannot be undone. This will permanently delete your
+              account and remove all your data.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-sm text-muted-foreground">Are you sure you want to delete your account?</p>
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete your account?
+            </p>
           </div>
-          {error && <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>}
+          {error && (
+            <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteAccountOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDeleteAccount} disabled={loading}>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteAccountOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAccount}
+              disabled={loading}
+            >
               {loading && <Loader2 className="size-4 animate-spin" />}
               Delete Account
             </Button>

@@ -1,11 +1,18 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
-import { LayoutDashboard, LogOut, Moon, Settings, ShieldCheck, Sun } from "lucide-react";
+import {
+  LayoutDashboard,
+  LogOut,
+  Moon,
+  Settings,
+  ShieldCheck,
+  Sun,
+} from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import { APP_NAME } from "@/lib/constants";
-import { ThemeToggle } from "./ThemeToggle";
 import { api } from "../../convex/_generated/api";
+import { ThemeToggle } from "./ThemeToggle";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import {
   DropdownMenu,
